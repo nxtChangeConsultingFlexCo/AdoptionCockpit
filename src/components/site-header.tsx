@@ -3,24 +3,31 @@ import { getCurrentUser, userHasRole } from "@/lib/auth/roles";
 import { endImpersonation } from "@/app/impersonate/actions";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/user-menu";
+import { NavDropdown } from "@/components/nav-dropdown";
 
 const navLinkClassName =
   "text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50";
 
+const BOARD_ROLES = ["leader", "ca_board", "it_board", "steering_committee"] as const;
+
 export async function SiteHeader() {
   const user = await getCurrentUser();
   const isGod = user?.role === "god";
-  const canManageUsers = user ? userHasRole(user, "client_admin") : false;
+  const isClientAdmin = user ? userHasRole(user, "client_admin") : false;
+  const hasBoardRole = user
+    ? BOARD_ROLES.some((role) => userHasRole(user, role))
+    : false;
 
   return (
     <header className="border-b border-zinc-200 dark:border-zinc-800">
       {user?.impersonatorId && (
         <div className="flex items-center justify-center gap-2 bg-amber-400 px-4 py-2 text-center text-sm font-medium text-amber-950">
-          <span>
-            Mimik: {user.displayName}
-          </span>
+          <span>Mimik: {user.displayName}</span>
           <form action={endImpersonation}>
-            <button type="submit" className="underline underline-offset-2 hover:no-underline">
+            <button
+              type="submit"
+              className="underline underline-offset-2 hover:no-underline"
+            >
               Beenden
             </button>
           </form>
@@ -37,7 +44,7 @@ export async function SiteHeader() {
           <div className="flex items-center gap-5 text-sm">
             {isGod ? (
               // god ist Plattform-Admin, kein Enduser: nur der Admin-Bereich,
-              // keine Business-Funktionen (Assessment, Roadmap, Cockpit).
+              // keine Business-Funktionen (Cockpit, Roadmap, Checks nehmen).
               <nav className="flex items-center gap-4">
                 <Link href="/admin" className={navLinkClassName}>
                   Dashboard
@@ -49,14 +56,11 @@ export async function SiteHeader() {
                   Organisationen
                 </Link>
                 <Link href="/settings/templates" className={navLinkClassName}>
-                  Templates
+                  Check-Templates
                 </Link>
               </nav>
             ) : (
               <nav className="flex items-center gap-4">
-                <Link href="/my-assessments" className={navLinkClassName}>
-                  Meine Assessments
-                </Link>
                 <Link href="/cockpit" className={navLinkClassName}>
                   Cockpit
                 </Link>
@@ -64,37 +68,43 @@ export async function SiteHeader() {
                   Roadmap
                 </Link>
                 <Link href="/change-requests" className={navLinkClassName}>
-                  Ideen &amp; Anfragen
+                  Anfragen
                 </Link>
-                <Link href="/settings/team" className={navLinkClassName}>
-                  Mein Team
-                </Link>
-                {canManageUsers && (
-                  <>
-                    <Link href="/settings/users" className={navLinkClassName}>
-                      Nutzer
-                    </Link>
-                    <Link
-                      href="/settings/assignments"
-                      className={navLinkClassName}
-                    >
-                      Zuordnungen
-                    </Link>
-                    <Link
-                      href="/settings/assessments"
-                      className={navLinkClassName}
-                    >
-                      Assessments verwalten
-                    </Link>
-                  </>
+                {isClientAdmin ? (
+                  <NavDropdown
+                    label="Checks"
+                    items={[
+                      { href: "/my-assessments", label: "Meine Checks" },
+                      {
+                        href: "/settings/assessments#ergebnisse",
+                        label: "Alle Checks (Org)",
+                      },
+                      {
+                        href: "/settings/assessments#katalog",
+                        label: "Checks verwalten",
+                      },
+                    ]}
+                  />
+                ) : (
+                  <Link href="/my-assessments" className={navLinkClassName}>
+                    {hasBoardRole ? "Checks" : "Meine Checks"}
+                  </Link>
+                )}
+                {isClientAdmin && (
+                  <NavDropdown
+                    label="Organisation"
+                    items={[
+                      { href: "/settings/users", label: "Nutzer" },
+                      { href: "/settings/assignments", label: "Zuordnungen" },
+                    ]}
+                  />
                 )}
               </nav>
             )}
             <UserMenu
               displayName={user.displayName}
               email={user.email}
-              isGod={isGod}
-              canManageUsers={canManageUsers}
+              isImpersonating={Boolean(user.impersonatorId)}
             />
           </div>
         ) : (

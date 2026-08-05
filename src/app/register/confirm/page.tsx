@@ -8,7 +8,7 @@ export default function RegisterConfirmPage() {
         <p className="text-base leading-7 text-zinc-600 dark:text-zinc-400">
           Wir haben dir eine E-Mail zur Bestätigung deines Kontos geschickt.
           Bitte bestätige deine E-Mail-Adresse und melde dich anschließend an,
-          um dein Assessment-Ergebnis zu sehen.
+          um dein Check-Ergebnis zu sehen.
         </p>
       </main>
     </div>

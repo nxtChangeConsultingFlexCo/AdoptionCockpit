@@ -63,7 +63,7 @@ export default async function AssignmentsPage() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Lege fest, wer wem in deiner Organisation zugeordnet ist. Das
-            steuert, wer wessen Assessment-Ergebnisse einsehen darf.
+            steuert, wer wessen Check-Ergebnisse einsehen darf.
           </p>
         </div>
 

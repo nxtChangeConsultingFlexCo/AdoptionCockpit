@@ -58,7 +58,7 @@ export default async function Home() {
     <div className="flex flex-1 flex-col items-center bg-zinc-50 dark:bg-black">
       <section className="flex w-full max-w-2xl flex-col items-center gap-6 px-6 pt-24 pb-12 text-center">
         <h1 className="text-4xl font-semibold tracking-tight text-foreground">
-          KI-Readiness-Assessment
+          KI-Readiness-Check
         </h1>
         <p className="max-w-lg text-lg leading-8 text-muted-foreground">
           Finde in wenigen Minuten heraus, wie bereit dein Unternehmen für den
@@ -70,7 +70,7 @@ export default async function Home() {
       <section className="w-full max-w-3xl px-6 pb-24">
         {templates.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground">
-            Aktuell ist kein Assessment verfügbar.
+            Aktuell ist kein Check verfügbar.
           </p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">

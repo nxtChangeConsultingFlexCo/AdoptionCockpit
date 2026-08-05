@@ -90,7 +90,7 @@ export default async function OrgAssessmentsPage() {
             Einstellungen
           </span>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
-            Assessments
+            Checks
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Verwalte, welche Checks in deiner Organisation verfügbar sind, und
@@ -98,7 +98,7 @@ export default async function OrgAssessmentsPage() {
           </p>
         </div>
 
-        <section className="flex flex-col gap-4">
+        <section id="katalog" className="flex flex-col gap-4 scroll-mt-20">
           <h2 className="text-lg font-medium text-foreground">
             Verfügbare Checks
           </h2>
@@ -134,13 +134,16 @@ export default async function OrgAssessmentsPage() {
           )}
         </section>
 
-        <section className="flex flex-col gap-4 border-t border-border pt-8">
+        <section
+          id="ergebnisse"
+          className="flex flex-col gap-4 border-t border-border pt-8 scroll-mt-20"
+        >
           <h2 className="text-lg font-medium text-foreground">
             Ergebnisse ({assessments.length})
           </h2>
           {assessments.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground">
-              Noch keine abgeschlossenen Assessments in deiner Organisation.
+              Noch keine abgeschlossenen Checks in deiner Organisation.
             </div>
           ) : (
             <div className="overflow-hidden rounded-xl border border-border">
@@ -173,7 +176,7 @@ export default async function OrgAssessmentsPage() {
                         >
                           <td className="px-4 py-3 text-foreground">{name}</td>
                           <td className="px-4 py-3 text-muted-foreground">
-                            {assessment.assessment_templates?.title ?? "Assessment"}
+                            {assessment.assessment_templates?.title ?? "Check"}
                           </td>
                           <td className="px-4 py-3 text-muted-foreground">
                             {new Date(assessment.created_at).toLocaleDateString(

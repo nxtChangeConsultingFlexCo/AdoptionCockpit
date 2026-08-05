@@ -31,7 +31,7 @@ export default async function TemplatesPage() {
               Einstellungen
             </span>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
-              Assessment-Templates
+              Check-Templates
             </h1>
           </div>
           <Button render={<Link href="/settings/templates/new" />}>

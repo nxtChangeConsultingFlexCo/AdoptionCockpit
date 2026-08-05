@@ -26,7 +26,7 @@ export default async function LoginPage({
         <CardHeader>
           <CardTitle>Anmelden</CardTitle>
           <CardDescription>
-            Melde dich an, um dein Assessment-Ergebnis direkt zu sehen.
+            Melde dich an, um dein Check-Ergebnis direkt zu sehen.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">

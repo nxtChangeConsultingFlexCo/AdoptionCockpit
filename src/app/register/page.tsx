@@ -48,7 +48,7 @@ export default async function RegisterPage({
           <CardDescription>
             {invitation
               ? `Du wurdest als ${APP_ROLE_LABELS[invitation.role]} eingeladen.`
-              : "Mit einem Konto findest du dein Assessment-Ergebnis jederzeit wieder."}
+              : "Mit einem Konto findest du dein Check-Ergebnis jederzeit wieder."}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -132,7 +132,7 @@ export default async function RegisterPage({
                 >
                   Ich stimme der Verarbeitung meiner Daten gemäß der
                   Datenschutzerklärung zur Durchführung des
-                  KI-Readiness-Assessments zu. (Pflichtfeld)
+                  KI-Readiness-Checks zu. (Pflichtfeld)
                 </Label>
               </div>
               <div className="flex items-start gap-2">

@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import Link from "next/link";
 import { logout } from "@/lib/auth-actions";
+import { endImpersonation } from "@/app/impersonate/actions";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -24,16 +25,10 @@ function initials(name: string): string {
 interface UserMenuProps {
   displayName: string;
   email: string | null;
-  isGod: boolean;
-  canManageUsers: boolean;
+  isImpersonating: boolean;
 }
 
-export function UserMenu({
-  displayName,
-  email,
-  isGod,
-  canManageUsers,
-}: UserMenuProps) {
+export function UserMenu({ displayName, email, isImpersonating }: UserMenuProps) {
   const [isPending, startTransition] = useTransition();
 
   return (
@@ -55,13 +50,14 @@ export function UserMenu({
         <DropdownMenuLinkItem closeOnClick render={<Link href="/settings/profile" />}>
           Einstellungen
         </DropdownMenuLinkItem>
-        {(isGod || canManageUsers) && (
-          <DropdownMenuLinkItem
+        {isImpersonating && (
+          <DropdownMenuItem
             closeOnClick
-            render={<Link href={isGod ? "/admin/users" : "/settings/users"} />}
+            disabled={isPending}
+            onClick={() => startTransition(() => endImpersonation())}
           >
-            Nutzer &amp; Mimik
-          </DropdownMenuLinkItem>
+            Mimik beenden
+          </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
         <DropdownMenuItem

@@ -40,7 +40,7 @@ export async function saveAuthenticatedAssessment(
   const supabase = await createClient();
   const questions = await loadTemplateQuestions(supabase, templateId);
   if (!questions) {
-    return { error: "Assessment-Vorlage nicht gefunden." };
+    return { error: "Check-Vorlage nicht gefunden." };
   }
   if (!isAnswersComplete(questions, answers)) {
     return { error: "Bitte beantworte zuerst alle Fragen." };
@@ -111,7 +111,7 @@ export async function saveGuestAssessment(
   const supabase = await createClient();
   const questions = await loadTemplateQuestions(supabase, templateId);
   if (!questions) {
-    return { error: "Assessment-Vorlage nicht gefunden." };
+    return { error: "Check-Vorlage nicht gefunden." };
   }
   if (!isAnswersComplete(questions, answers)) {
     return { error: "Bitte beantworte zuerst alle Fragen." };

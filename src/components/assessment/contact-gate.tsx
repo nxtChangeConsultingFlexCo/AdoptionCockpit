@@ -124,7 +124,7 @@ export function ContactGate({ onSubmitGuest, isPending, error }: ContactGateProp
                   className="text-sm leading-snug font-normal"
                 >
                   Ich stimme der Verarbeitung meiner Daten gemäß der
-                  Datenschutzerklärung zur Auswertung dieses Assessments zu.
+                  Datenschutzerklärung zur Auswertung dieses Checks zu.
                   (Pflichtfeld)
                 </Label>
               </div>

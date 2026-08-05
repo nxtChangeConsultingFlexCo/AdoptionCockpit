@@ -71,7 +71,7 @@ export default async function TeamPage() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Lege fest, wem du zugeordnet bist. Das bestimmt, wer deine
-            Assessment-Ergebnisse einsehen kann.
+            Check-Ergebnisse einsehen kann.
           </p>
         </div>
 

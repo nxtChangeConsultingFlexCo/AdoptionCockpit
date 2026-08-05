@@ -36,7 +36,7 @@ export default async function MyAssessmentsPage() {
               Übersicht
             </span>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
-              Meine Assessments
+              Meine Checks
             </h1>
           </div>
           <Button render={<Link href="/" />}>Neuen Check starten</Button>
@@ -45,7 +45,7 @@ export default async function MyAssessmentsPage() {
         {assessments.length === 0 ? (
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border px-6 py-16 text-center">
             <p className="text-sm text-muted-foreground">
-              Du hast noch kein Assessment abgeschlossen.
+              Du hast noch keinen Check abgeschlossen.
             </p>
             <Button variant="outline" render={<Link href="/" />}>
               Ersten Check starten
@@ -61,7 +61,7 @@ export default async function MyAssessmentsPage() {
               >
                 <div className="flex flex-col gap-1">
                   <span className="font-medium text-foreground">
-                    {assessment.assessment_templates?.title ?? "Assessment"}
+                    {assessment.assessment_templates?.title ?? "Check"}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {new Date(assessment.created_at).toLocaleDateString("de-DE", {

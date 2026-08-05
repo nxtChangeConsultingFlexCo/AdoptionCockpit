@@ -52,11 +52,11 @@ export default async function CockpitPage() {
             Willkommen in deinem Cockpit
           </h1>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Sobald du dein erstes KI-Readiness-Assessment abgeschlossen hast,
+            Sobald du deinen ersten KI-Readiness-Check abgeschlossen hast,
             siehst du hier deine Kennzahlen und Impulse.
           </p>
           <Button size="lg" render={<Link href="/assessment" />}>
-            Assessment starten
+            Check starten
           </Button>
         </div>
       </div>
@@ -124,7 +124,7 @@ export default async function CockpitPage() {
             sublabel={ASSESSMENT_DIMENSION_LABELS[weakest.dimension]}
           />
           <KpiCard
-            label="Assessments"
+            label="Checks"
             value={`${assessments.length}`}
             sublabel="Durchgeführt"
           />
@@ -176,7 +176,7 @@ export default async function CockpitPage() {
 
         <div className="flex justify-end">
           <Button variant="outline" render={<Link href="/assessment" />}>
-            Neues Assessment starten
+            Neuen Check starten
           </Button>
         </div>
       </div>

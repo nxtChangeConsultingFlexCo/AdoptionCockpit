@@ -92,7 +92,7 @@ export default async function AdminDashboardPage() {
             value={`${totalUsers ?? 0}`}
           />
           <KpiCard
-            label="Abgeschlossene Assessments"
+            label="Abgeschlossene Checks"
             value={`${totalAssessments ?? 0}`}
           />
           <KpiCard
@@ -104,11 +104,11 @@ export default async function AdminDashboardPage() {
         <section className="grid gap-6 sm:grid-cols-2">
           <div className="flex flex-col gap-3">
             <h2 className="text-lg font-medium text-foreground">
-              Assessments je Template
+              Checks je Template
             </h2>
             {templateCounts.size === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Noch keine abgeschlossenen Assessments.
+                Noch keine abgeschlossenen Checks.
               </p>
             ) : (
               <div className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4">
