@@ -38,6 +38,9 @@ export async function SiteHeader() {
               </nav>
             ) : (
               <nav className="flex items-center gap-4">
+                <Link href="/my-assessments" className={navLinkClassName}>
+                  Meine Assessments
+                </Link>
                 <Link href="/cockpit" className={navLinkClassName}>
                   Cockpit
                 </Link>

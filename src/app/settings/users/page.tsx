@@ -13,53 +13,32 @@ interface InvitationListItem {
   email: string;
   role: (typeof APP_ROLES)[number];
   status: "pending" | "accepted";
-  organizations: { name: string } | null;
 }
 
 export default async function UserManagementPage() {
-  // god verwaltet Nutzer jetzt organisationsübergreifend unter
-  // /admin/users - diese Seite ist die org-gebundene Ansicht für
-  // client_admin.
+  // god verwaltet Nutzer organisationsübergreifend unter /admin/users -
+  // diese Seite ist die org-gebundene Ansicht für client_admin.
   const currentUser = await requireRole(["client_admin"], "/settings/users");
   const supabase = await createClient();
-  const isGod = false;
 
-  let query = supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select(
       "id, first_name, last_name, email, job_title, role, organization_id, created_at, organizations(name), profile_roles(role)",
     )
+    .eq("organization_id", currentUser.organizationId ?? "")
+    .not("role", "in", "(god,consultant)")
     .order("created_at", { ascending: true });
 
-  if (!isGod) {
-    // god/consultant sind organisationsunabhängige Plattformrollen - ein
-    // client_admin verwaltet nur Mitarbeitende der eigenen Organisation.
-    query = query
-      .eq("organization_id", currentUser.organizationId ?? "")
-      .not("role", "in", "(god,consultant)");
-  }
-
-  const { data, error } = await query;
   const users = (data ?? []) as unknown as UserListItem[];
 
-  let invitationsQuery = supabase
+  const { data: invitations } = await supabase
     .from("invitations")
-    .select("id, email, role, status, organizations(name)")
+    .select("id, email, role, status")
+    .eq("organization_id", currentUser.organizationId ?? "")
     .order("created_at", { ascending: false });
 
-  if (!isGod) {
-    invitationsQuery = invitationsQuery.eq(
-      "organization_id",
-      currentUser.organizationId ?? "",
-    );
-  }
-
-  const { data: invitations } = await invitationsQuery;
   const invitationList = (invitations ?? []) as unknown as InvitationListItem[];
-
-  const { data: organizations } = isGod
-    ? await supabase.from("organizations").select("id, name").order("name")
-    : { data: null };
 
   return (
     <div className="flex flex-1 justify-center bg-zinc-50 px-4 py-12 dark:bg-black">
@@ -72,9 +51,8 @@ export default async function UserManagementPage() {
             Benutzerverwaltung
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {isGod
-              ? "Alle Nutzer:innen über alle Organisationen hinweg."
-              : "Weise Mitarbeitenden deiner Organisation eine Rolle im Change-Prozess zu."}
+            Weise Mitarbeitenden deiner Organisation eine Rolle im
+            Change-Prozess zu.
           </p>
         </div>
 
@@ -88,16 +66,13 @@ export default async function UserManagementPage() {
           users={users}
           currentUserId={currentUser.id}
           assignableOrgRoles={ASSIGNABLE_ORG_ROLES}
-          showOrg={isGod}
-          isGod={isGod}
+          showOrg={false}
+          isGod={false}
         />
 
         <div className="flex flex-col gap-4 border-t border-border pt-8">
           <h2 className="text-lg font-medium text-foreground">Einladungen</h2>
-          <InvitationForm
-            organizations={isGod ? (organizations ?? []) : undefined}
-            lockedOrganizationId={isGod ? undefined : (currentUser.organizationId ?? undefined)}
-          />
+          <InvitationForm lockedOrganizationId={currentUser.organizationId ?? undefined} />
 
           {invitationList.length > 0 && (
             <div className="overflow-hidden rounded-xl border border-border">
@@ -107,7 +82,6 @@ export default async function UserManagementPage() {
                     <tr className="border-b border-border bg-muted/40 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">
                       <th className="px-4 py-3">E-Mail</th>
                       <th className="px-4 py-3">Rolle</th>
-                      {isGod && <th className="px-4 py-3">Organisation</th>}
                       <th className="px-4 py-3">Status</th>
                     </tr>
                   </thead>
@@ -123,11 +97,6 @@ export default async function UserManagementPage() {
                         <td className="px-4 py-3 text-muted-foreground">
                           {APP_ROLE_LABELS[invitation.role]}
                         </td>
-                        {isGod && (
-                          <td className="px-4 py-3 text-muted-foreground">
-                            {invitation.organizations?.name ?? "—"}
-                          </td>
-                        )}
                         <td className="px-4 py-3">
                           <span
                             className={
