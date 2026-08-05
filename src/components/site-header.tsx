@@ -3,58 +3,57 @@ import { getCurrentUser, userHasRole } from "@/lib/auth/roles";
 import { logout } from "@/lib/auth-actions";
 import { Button } from "@/components/ui/button";
 
+const navLinkClassName =
+  "text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50";
+
 export async function SiteHeader() {
   const user = await getCurrentUser();
-  const canManageUsers = user ? userHasRole(user, "client_admin") || user.role === "god" : false;
   const isGod = user?.role === "god";
+  const canManageUsers = user ? userHasRole(user, "client_admin") : false;
 
   return (
     <header className="border-b border-zinc-200 dark:border-zinc-800">
       <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-3">
         <Link
-          href="/"
+          href={isGod ? "/admin" : "/"}
           className="font-semibold text-zinc-950 dark:text-zinc-50"
         >
           AdoptionCockpit
         </Link>
         {user ? (
           <div className="flex items-center gap-5 text-sm">
-            <nav className="flex items-center gap-4">
-              <Link
-                href="/cockpit"
-                className="text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
-              >
-                Cockpit
-              </Link>
-              <Link
-                href="/roadmap"
-                className="text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
-              >
-                Roadmap
-              </Link>
-              <Link
-                href="/change-requests"
-                className="text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
-              >
-                Ideen &amp; Anfragen
-              </Link>
-              {canManageUsers && (
-                <Link
-                  href="/settings/users"
-                  className="text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
-                >
+            {isGod ? (
+              // god ist Plattform-Admin, kein Enduser: nur der Admin-Bereich,
+              // keine Business-Funktionen (Assessment, Roadmap, Cockpit).
+              <nav className="flex items-center gap-4">
+                <Link href="/admin" className={navLinkClassName}>
+                  Dashboard
+                </Link>
+                <Link href="/admin/users" className={navLinkClassName}>
                   Nutzer
                 </Link>
-              )}
-              {isGod && (
-                <Link
-                  href="/settings/templates"
-                  className="text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
-                >
+                <Link href="/settings/templates" className={navLinkClassName}>
                   Templates
                 </Link>
-              )}
-            </nav>
+              </nav>
+            ) : (
+              <nav className="flex items-center gap-4">
+                <Link href="/cockpit" className={navLinkClassName}>
+                  Cockpit
+                </Link>
+                <Link href="/roadmap" className={navLinkClassName}>
+                  Roadmap
+                </Link>
+                <Link href="/change-requests" className={navLinkClassName}>
+                  Ideen &amp; Anfragen
+                </Link>
+                {canManageUsers && (
+                  <Link href="/settings/users" className={navLinkClassName}>
+                    Nutzer
+                  </Link>
+                )}
+              </nav>
+            )}
             <span className="hidden text-zinc-600 sm:inline dark:text-zinc-400">
               {user.email}
             </span>

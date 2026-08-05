@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/roles";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,6 +13,12 @@ import {
 import type { AssessmentTemplateSummary } from "@/types/template";
 
 export default async function Home() {
+  // god ist Plattform-Admin, kein Enduser - landet immer im Admin-Bereich.
+  const currentUser = await getCurrentUser();
+  if (currentUser?.role === "god") {
+    redirect("/admin");
+  }
+
   const supabase = await createClient();
   const { data } = await supabase
     .from("assessment_templates")

@@ -17,9 +17,12 @@ interface InvitationListItem {
 }
 
 export default async function UserManagementPage() {
-  const currentUser = await requireRole(["client_admin", "god"], "/settings/users");
+  // god verwaltet Nutzer jetzt organisationsübergreifend unter
+  // /admin/users - diese Seite ist die org-gebundene Ansicht für
+  // client_admin.
+  const currentUser = await requireRole(["client_admin"], "/settings/users");
   const supabase = await createClient();
-  const isGod = currentUser.role === "god";
+  const isGod = false;
 
   let query = supabase
     .from("profiles")
