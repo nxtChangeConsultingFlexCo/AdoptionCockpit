@@ -74,11 +74,7 @@ export async function SiteHeader() {
                     items={[
                       { href: "/my-assessments", label: "Meine Checks" },
                       {
-                        href: "/settings/assessments#ergebnisse",
-                        label: "Alle Checks (Org)",
-                      },
-                      {
-                        href: "/settings/assessments#katalog",
+                        href: "/settings/assessments",
                         label: "Checks verwalten",
                       },
                     ]}
