@@ -1,23 +1,18 @@
 import { requireRole } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
-import { AssignmentManager } from "@/components/settings/assignment-manager";
-import type { OrgAssignmentRelationType } from "@/types/org-assignment";
+import { AssignmentBoard, type BoardMember } from "@/components/settings/assignment-board";
+import { OrgPicker } from "@/components/settings/org-picker";
+import type { AppRole } from "@/types/roles";
 
-interface ProfileSummary {
+interface ProfileWithRoles {
   id: string;
   first_name: string | null;
   last_name: string | null;
   email: string | null;
+  profile_roles: { role: AppRole }[] | null;
 }
 
-interface AssignmentRow {
-  child_user_id: string;
-  parent_user_id: string;
-  relation_type: OrgAssignmentRelationType;
-}
-
-function displayName(profile: ProfileSummary | undefined): string {
-  if (!profile) return "Unbekannt";
+function displayName(profile: ProfileWithRoles): string {
   return (
     [profile.first_name, profile.last_name].filter(Boolean).join(" ") ||
     profile.email ||
@@ -25,49 +20,85 @@ function displayName(profile: ProfileSummary | undefined): string {
   );
 }
 
-export default async function AssignmentsPage() {
+export default async function AssignmentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ org?: string }>;
+}) {
   const currentUser = await requireRole(["client_admin"], "/settings/assignments");
+  const { org } = await searchParams;
   const supabase = await createClient();
+  const isGod = currentUser.role === "god";
 
-  const { data: memberRows } = await supabase
-    .from("profiles")
-    .select("id, first_name, last_name, email")
-    .eq("organization_id", currentUser.organizationId ?? "")
-    .order("first_name", { ascending: true });
+  let organizationId = isGod ? (org ?? null) : currentUser.organizationId;
+  let organizations: { id: string; name: string }[] = [];
 
-  const profiles = (memberRows ?? []) as ProfileSummary[];
-  const profileMap = new Map(profiles.map((p) => [p.id, p]));
-  const members = profiles.map((p) => ({ id: p.id, name: displayName(p) }));
+  if (isGod) {
+    const { data } = await supabase
+      .from("organizations")
+      .select("id, name")
+      .order("name", { ascending: true });
+    organizations = data ?? [];
+    if (!organizationId && organizations.length > 0) {
+      organizationId = organizations[0]!.id;
+    }
+  }
 
-  const { data: assignmentRows } = await supabase
-    .from("org_assignments")
-    .select("child_user_id, parent_user_id, relation_type")
-    .eq("organization_id", currentUser.organizationId ?? "");
+  let members: BoardMember[] = [];
+  let assignments: Record<string, string> = {};
 
-  const assignments = ((assignmentRows ?? []) as AssignmentRow[]).map((a) => ({
-    childUserId: a.child_user_id,
-    childName: displayName(profileMap.get(a.child_user_id)),
-    parentName: displayName(profileMap.get(a.parent_user_id)),
-    relationType: a.relation_type,
-  }));
+  if (organizationId) {
+    const { data: memberRows } = await supabase
+      .from("profiles")
+      .select("id, first_name, last_name, email, profile_roles(role)")
+      .eq("organization_id", organizationId)
+      .order("first_name", { ascending: true });
+
+    members = ((memberRows ?? []) as ProfileWithRoles[]).map((p) => ({
+      id: p.id,
+      name: displayName(p),
+      roles: (p.profile_roles ?? []).map((r) => r.role),
+    }));
+
+    const { data: assignmentRows } = await supabase
+      .from("org_assignments")
+      .select("child_user_id, parent_user_id")
+      .eq("organization_id", organizationId);
+
+    assignments = Object.fromEntries(
+      (assignmentRows ?? []).map((a) => [a.child_user_id, a.parent_user_id]),
+    );
+  }
 
   return (
     <div className="flex flex-1 justify-center bg-zinc-50 px-4 py-12 dark:bg-black">
-      <div className="flex w-full max-w-3xl flex-col gap-8">
-        <div>
-          <span className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
-            Einstellungen
-          </span>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
-            Zuordnungen
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Lege fest, wer wem in deiner Organisation zugeordnet ist. Das
-            steuert, wer wessen Check-Ergebnisse einsehen darf.
-          </p>
+      <div className="flex w-full max-w-6xl flex-col gap-8">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <span className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
+              Einstellungen
+            </span>
+            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
+              Zuordnungen
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Ziehe Personen auf ihre Leader, CA Board-, Steering
+              Committee- oder IT Board-Zugehörigkeit. Das steuert, wer
+              wessen Check-Ergebnisse einsehen darf.
+            </p>
+          </div>
+          {isGod && (
+            <OrgPicker organizations={organizations} selected={organizationId} />
+          )}
         </div>
 
-        <AssignmentManager members={members} assignments={assignments} />
+        {!organizationId ? (
+          <div className="rounded-2xl border border-dashed border-border px-6 py-16 text-center text-sm text-muted-foreground">
+            Keine Organisation ausgewählt.
+          </div>
+        ) : (
+          <AssignmentBoard members={members} assignments={assignments} />
+        )}
       </div>
     </div>
   );
