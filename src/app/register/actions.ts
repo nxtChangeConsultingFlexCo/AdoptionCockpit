@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 
 export async function signup(formData: FormData) {
@@ -33,10 +34,21 @@ export async function signup(formData: FormData) {
 
   const supabase = await createClient();
 
+  // Ohne explizite emailRedirectTo verwendet Supabase die im Dashboard
+  // hinterlegte Site URL - die zeigt nicht zuverlässig auf unseren
+  // Callback-Handler (der den Bestätigungs-Code erst gegen eine echte
+  // Session eintauscht). Herkunft daher aus dem tatsächlichen Request
+  // ableiten, funktioniert so in jeder Umgebung (lokal, Vercel, ...).
+  const headersList = await headers();
+  const host = headersList.get("host") ?? "localhost:3000";
+  const protocol = host.startsWith("localhost") ? "http" : "https";
+  const origin = `${protocol}://${host}`;
+
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
+      emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
       data: {
         first_name: firstName,
         last_name: lastName,
