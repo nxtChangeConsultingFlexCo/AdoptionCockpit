@@ -30,19 +30,27 @@ interface ProfileSummary {
 }
 
 export default async function OrgAssessmentsPage() {
-  const currentUser = await requireRole(["client_admin"], "/settings/assessments");
+  const currentUser = await requireRole(
+    ["client_admin", "steering_committee"],
+    "/settings/assessments",
+  );
+  // Steering Committee ist Aufsicht/Reporting, kein Genehmiger - sieht
+  // die Ergebnisse org-weit, verwaltet aber nicht den Freigabe-Katalog.
+  const canManageCatalog =
+    currentUser.role === "god" || currentUser.orgRoles.includes("client_admin");
   const organizationId = currentUser.organizationId;
   const supabase = await createClient();
 
-  const { data: catalogData } = organizationId
-    ? await supabase
-        .from("organization_assessments")
-        .select(
-          "id, is_available, sort_order, assessment_templates(id, title, slug, is_active)",
-        )
-        .eq("organization_id", organizationId)
-        .order("sort_order", { ascending: true })
-    : { data: null };
+  const { data: catalogData } =
+    canManageCatalog && organizationId
+      ? await supabase
+          .from("organization_assessments")
+          .select(
+            "id, is_available, sort_order, assessment_templates(id, title, slug, is_active)",
+          )
+          .eq("organization_id", organizationId)
+          .order("sort_order", { ascending: true })
+      : { data: null };
 
   const catalog = ((catalogData ?? []) as unknown as CatalogEntry[]).filter(
     (
@@ -52,7 +60,8 @@ export default async function OrgAssessmentsPage() {
     } => Boolean(entry.assessment_templates),
   );
 
-  // RLS ("Client admins can view assessments in their organization")
+  // RLS ("Client admins can view assessments in their organization" /
+  // "Steering committee can view assessments in their organization")
   // beschränkt das Ergebnis bereits auf die eigene Org - kein
   // zusätzlicher Filter hier nötig (assessments hat keine
   // organization_id-Spalte, nur user_id -> profiles.organization_id).
@@ -93,50 +102,57 @@ export default async function OrgAssessmentsPage() {
             Checks
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Verwalte, welche Checks in deiner Organisation verfügbar sind, und
-            sieh alle abgeschlossenen Ergebnisse ein.
+            {canManageCatalog
+              ? "Verwalte, welche Checks in deiner Organisation verfügbar sind, und sieh alle abgeschlossenen Ergebnisse ein."
+              : "Aufsicht/Reporting: alle abgeschlossenen Ergebnisse deiner Organisation."}
           </p>
         </div>
 
-        <section id="katalog" className="flex flex-col gap-4 scroll-mt-20">
-          <h2 className="text-lg font-medium text-foreground">
-            Verfügbare Checks
-          </h2>
-          {catalog.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground">
-              Noch keine Checks im Katalog.
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {catalog.map((entry) => (
-                <div
-                  key={entry.id}
-                  className="flex items-center justify-between gap-4 rounded-xl border border-border bg-card px-5 py-4"
-                >
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-medium text-foreground">
-                      {entry.assessment_templates.title}
-                    </span>
-                    {!entry.assessment_templates.is_active && (
-                      <span className="text-xs text-muted-foreground">
-                        Vom Anbieter deaktiviert
+        {canManageCatalog && (
+          <section id="katalog" className="flex flex-col gap-4 scroll-mt-20">
+            <h2 className="text-lg font-medium text-foreground">
+              Verfügbare Checks
+            </h2>
+            {catalog.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground">
+                Noch keine Checks im Katalog.
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {catalog.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-center justify-between gap-4 rounded-xl border border-border bg-card px-5 py-4"
+                  >
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium text-foreground">
+                        {entry.assessment_templates.title}
                       </span>
-                    )}
+                      {!entry.assessment_templates.is_active && (
+                        <span className="text-xs text-muted-foreground">
+                          Vom Anbieter deaktiviert
+                        </span>
+                      )}
+                    </div>
+                    <AssessmentAvailabilityToggle
+                      organizationId={organizationId ?? ""}
+                      templateId={entry.assessment_templates.id}
+                      isAvailable={entry.is_available}
+                    />
                   </div>
-                  <AssessmentAvailabilityToggle
-                    organizationId={organizationId ?? ""}
-                    templateId={entry.assessment_templates.id}
-                    isAvailable={entry.is_available}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         <section
           id="ergebnisse"
-          className="flex flex-col gap-4 border-t border-border pt-8 scroll-mt-20"
+          className={
+            canManageCatalog
+              ? "flex flex-col gap-4 border-t border-border pt-8 scroll-mt-20"
+              : "flex flex-col gap-4 scroll-mt-20"
+          }
         >
           <h2 className="text-lg font-medium text-foreground">
             Ergebnisse ({assessments.length})

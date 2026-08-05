@@ -19,7 +19,7 @@ export const APP_ROLE_LABELS: Record<AppRole, string> = {
   leader: "Cluster Lead",
   ca_board: "CA Board",
   it_board: "IT Board",
-  steering_committee: "Steering Committee",
+  steering_committee: "Steering Committee (Aufsicht)",
 };
 
 // Rollen, die ein client_admin/god innerhalb der Benutzerverwaltung einer

@@ -14,6 +14,7 @@ export async function SiteHeader() {
   const user = await getCurrentUser();
   const isGod = user?.role === "god";
   const isClientAdmin = user ? userHasRole(user, "client_admin") : false;
+  const isSteering = user ? userHasRole(user, "steering_committee") : false;
   const hasBoardRole = user
     ? BOARD_ROLES.some((role) => userHasRole(user, role))
     : false;
@@ -85,7 +86,14 @@ export async function SiteHeader() {
                     ]}
                   />
                 ) : (
-                  <Link href="/my-assessments" className={navLinkClassName}>
+                  <Link
+                    href={
+                      isSteering
+                        ? "/settings/assessments#ergebnisse"
+                        : "/my-assessments"
+                    }
+                    className={navLinkClassName}
+                  >
                     {hasBoardRole ? "Checks" : "Meine Checks"}
                   </Link>
                 )}
