@@ -5,6 +5,7 @@ import {
   toggleUserRole,
   updatePlatformRole,
 } from "@/app/settings/users/actions";
+import { startImpersonation } from "@/app/impersonate/actions";
 import { APP_ROLE_LABELS, type AppRole } from "@/types/roles";
 import {
   Select,
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 const PLATFORM_ROLE_LABELS: Record<"employee" | "consultant" | "god", string> = {
   employee: "Standard",
@@ -72,6 +74,7 @@ export function UserManagementTable({
               {showOrg && <th className="px-4 py-3">Organisation</th>}
               <th className="px-4 py-3">Rollen</th>
               {isGod && <th className="px-4 py-3">Plattform</th>}
+              <th className="px-4 py-3">Aktion</th>
             </tr>
           </thead>
           <tbody>
@@ -110,7 +113,19 @@ function UserRow({
   );
   const [platformRole, setPlatformRole] = useState(user.role);
   const [error, setError] = useState<string | null>(null);
+  const [impersonateError, setImpersonateError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isImpersonating, startImpersonateTransition] = useTransition();
+
+  function handleImpersonate() {
+    setImpersonateError(null);
+    startImpersonateTransition(async () => {
+      const res = await startImpersonation(user.id);
+      if (res?.error) {
+        setImpersonateError(res.error);
+      }
+    });
+  }
 
   const fullName =
     [user.first_name, user.last_name].filter(Boolean).join(" ") || "—";
@@ -209,6 +224,23 @@ function UserRow({
           </div>
         </td>
       )}
+      <td className="px-4 py-3">
+        {!isOwnRow && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isImpersonating}
+              onClick={handleImpersonate}
+            >
+              Als diesen User ansehen
+            </Button>
+            {impersonateError && (
+              <p className="mt-1 text-xs text-destructive">{impersonateError}</p>
+            )}
+          </>
+        )}
+      </td>
     </tr>
   );
 }

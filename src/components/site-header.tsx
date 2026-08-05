@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser, userHasRole } from "@/lib/auth/roles";
 import { logout } from "@/lib/auth-actions";
+import { endImpersonation } from "@/app/impersonate/actions";
 import { Button } from "@/components/ui/button";
 
 const navLinkClassName =
@@ -13,6 +14,18 @@ export async function SiteHeader() {
 
   return (
     <header className="border-b border-zinc-200 dark:border-zinc-800">
+      {user?.impersonatorId && (
+        <div className="flex items-center justify-center gap-2 bg-amber-400 px-4 py-2 text-center text-sm font-medium text-amber-950">
+          <span>
+            Mimik: {user.displayName}
+          </span>
+          <form action={endImpersonation}>
+            <button type="submit" className="underline underline-offset-2 hover:no-underline">
+              Beenden
+            </button>
+          </form>
+        </div>
+      )}
       <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-3">
         <Link
           href={isGod ? "/admin" : "/"}
