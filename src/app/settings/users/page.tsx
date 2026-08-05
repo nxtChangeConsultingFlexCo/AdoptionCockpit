@@ -5,15 +5,12 @@ import {
   type UserListItem,
 } from "@/components/settings/user-management-table";
 import { InvitationForm } from "@/components/settings/invitation-form";
-import { APP_ROLES, APP_ROLE_LABELS, ASSIGNABLE_ORG_ROLES } from "@/types/roles";
+import {
+  InvitationList,
+  type InvitationListItem,
+} from "@/components/settings/invitation-list";
+import { ASSIGNABLE_ORG_ROLES } from "@/types/roles";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
-interface InvitationListItem {
-  id: string;
-  email: string;
-  role: (typeof APP_ROLES)[number];
-  status: "pending" | "accepted";
-}
 
 export default async function UserManagementPage() {
   // god verwaltet Nutzer organisationsübergreifend unter /admin/users -
@@ -77,50 +74,7 @@ export default async function UserManagementPage() {
         <div className="flex flex-col gap-4 border-t border-border pt-8">
           <h2 className="text-lg font-medium text-foreground">Einladungen</h2>
           <InvitationForm lockedOrganizationId={currentUser.organizationId ?? undefined} />
-
-          {invitationList.length > 0 && (
-            <div className="overflow-hidden rounded-xl border border-border">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/40 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                      <th className="px-4 py-3">E-Mail</th>
-                      <th className="px-4 py-3">Rolle</th>
-                      <th className="px-4 py-3">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {invitationList.map((invitation) => (
-                      <tr
-                        key={invitation.id}
-                        className="border-b border-border last:border-0"
-                      >
-                        <td className="px-4 py-3 text-foreground">
-                          {invitation.email}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {APP_ROLE_LABELS[invitation.role]}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={
-                              invitation.status === "accepted"
-                                ? "inline-flex rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground"
-                                : "inline-flex rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
-                            }
-                          >
-                            {invitation.status === "accepted"
-                              ? "Angenommen"
-                              : "Ausstehend"}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+          <InvitationList invitations={invitationList} showOrg={false} />
         </div>
       </div>
     </div>
