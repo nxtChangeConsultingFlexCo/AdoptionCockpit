@@ -27,7 +27,11 @@ export default async function UserManagementPage() {
       "id, first_name, last_name, email, job_title, role, organization_id, created_at, organizations(name), profile_roles(role)",
     )
     .eq("organization_id", currentUser.organizationId ?? "")
-    .not("role", "in", "(god,consultant)")
+    // god ist organisationsunabhängig und käme hier ohnehin nie vor.
+    // consultant ist bewusst NICHT ausgeschlossen - Consultants sind
+    // kundenspezifisch zugeordnet, ein client_admin soll den/die eigene(n)
+    // Consultant sehen (nur god darf ihn zuweisen/entfernen).
+    .neq("role", "god")
     .order("created_at", { ascending: true });
 
   const users = (data ?? []) as unknown as UserListItem[];

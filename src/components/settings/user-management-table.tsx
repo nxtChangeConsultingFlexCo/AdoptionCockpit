@@ -16,6 +16,12 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 
+const PLATFORM_ROLE_LABELS: Record<"employee" | "consultant" | "god", string> = {
+  employee: "Standard",
+  consultant: APP_ROLE_LABELS.consultant,
+  god: APP_ROLE_LABELS.god,
+};
+
 export interface UserListItem {
   id: string;
   first_name: string | null;
@@ -183,7 +189,11 @@ function UserRow({
               disabled={isOwnRow || isPending}
             >
               <SelectTrigger size="sm" className="w-36">
-                <SelectValue />
+                <SelectValue>
+                  {(value: "employee" | "consultant" | "god") =>
+                    PLATFORM_ROLE_LABELS[value] ?? value
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="employee">Standard</SelectItem>
