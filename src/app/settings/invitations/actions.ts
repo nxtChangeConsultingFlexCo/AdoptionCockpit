@@ -21,10 +21,12 @@ export async function createInvitation(
     return { error: "Bitte E-Mail und Organisation angeben." };
   }
 
-  // client_admin darf nur in die eigene Organisation einladen - die
-  // RLS-Policy erzwingt das ohnehin serverseitig, hier zusätzlich für
-  // eine klare Fehlermeldung statt eines generischen DB-Fehlers.
-  if (user.role === "client_admin" && organizationId !== user.organizationId) {
+  // Wer nicht god ist, kommt hier nur über die client_admin-Org-Rolle her
+  // (requireRole oben) und darf ausschließlich in die eigene Organisation
+  // einladen - die RLS-Policy erzwingt das ohnehin serverseitig, hier
+  // zusätzlich für eine klare Fehlermeldung statt eines generischen
+  // DB-Fehlers.
+  if (user.role !== "god" && organizationId !== user.organizationId) {
     return { error: "Du kannst nur in deine eigene Organisation einladen." };
   }
 

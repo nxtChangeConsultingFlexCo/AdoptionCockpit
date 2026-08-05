@@ -160,7 +160,8 @@ export default async function ChangeRequestDetailPage({
             <BoardActions
               requestId={changeRequest.id}
               status={changeRequest.status}
-              role={user.role}
+              orgRoles={user.orgRoles}
+              isGod={user.role === "god"}
             />
           </CardContent>
         </Card>

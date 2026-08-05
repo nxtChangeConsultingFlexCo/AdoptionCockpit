@@ -24,7 +24,7 @@ export default async function UserManagementPage() {
   let query = supabase
     .from("profiles")
     .select(
-      "id, first_name, last_name, email, job_title, role, organization_id, created_at, organizations(name)",
+      "id, first_name, last_name, email, job_title, role, organization_id, created_at, organizations(name), profile_roles(role)",
     )
     .order("created_at", { ascending: true });
 
@@ -84,8 +84,9 @@ export default async function UserManagementPage() {
         <UserManagementTable
           users={users}
           currentUserId={currentUser.id}
-          availableRoles={isGod ? [...APP_ROLES] : ASSIGNABLE_ORG_ROLES}
+          assignableOrgRoles={ASSIGNABLE_ORG_ROLES}
           showOrg={isGod}
+          isGod={isGod}
         />
 
         <div className="flex flex-col gap-4 border-t border-border pt-8">

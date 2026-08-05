@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updateUserRole } from "@/app/settings/users/actions";
+import {
+  toggleUserRole,
+  updatePlatformRole,
+} from "@/app/settings/users/actions";
 import { APP_ROLE_LABELS, type AppRole } from "@/types/roles";
 import {
   Select,
@@ -10,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 
 export interface UserListItem {
@@ -22,20 +26,23 @@ export interface UserListItem {
   organization_id: string | null;
   created_at: string;
   organizations: { name: string } | null;
+  profile_roles: { role: AppRole }[] | null;
 }
 
 interface UserManagementTableProps {
   users: UserListItem[];
   currentUserId: string;
-  availableRoles: AppRole[];
+  assignableOrgRoles: AppRole[];
   showOrg: boolean;
+  isGod: boolean;
 }
 
 export function UserManagementTable({
   users,
   currentUserId,
-  availableRoles,
+  assignableOrgRoles,
   showOrg,
+  isGod,
 }: UserManagementTableProps) {
   if (users.length === 0) {
     return (
@@ -57,7 +64,8 @@ export function UserManagementTable({
               <th className="px-4 py-3">E-Mail</th>
               <th className="px-4 py-3">Funktion</th>
               {showOrg && <th className="px-4 py-3">Organisation</th>}
-              <th className="px-4 py-3">Rolle</th>
+              <th className="px-4 py-3">Rollen</th>
+              {isGod && <th className="px-4 py-3">Plattform</th>}
             </tr>
           </thead>
           <tbody>
@@ -66,8 +74,9 @@ export function UserManagementTable({
                 key={user.id}
                 user={user}
                 isOwnRow={user.id === currentUserId}
-                availableRoles={availableRoles}
+                assignableOrgRoles={assignableOrgRoles}
                 showOrg={showOrg}
+                isGod={isGod}
               />
             ))}
           </tbody>
@@ -80,42 +89,60 @@ export function UserManagementTable({
 function UserRow({
   user,
   isOwnRow,
-  availableRoles,
+  assignableOrgRoles,
   showOrg,
+  isGod,
 }: {
   user: UserListItem;
   isOwnRow: boolean;
-  availableRoles: AppRole[];
+  assignableOrgRoles: AppRole[];
   showOrg: boolean;
+  isGod: boolean;
 }) {
-  const [role, setRole] = useState(user.role);
+  const [roles, setRoles] = useState<AppRole[]>(
+    (user.profile_roles ?? []).map((r) => r.role),
+  );
+  const [platformRole, setPlatformRole] = useState(user.role);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const fullName =
     [user.first_name, user.last_name].filter(Boolean).join(" ") || "—";
 
-  function handleChange(value: AppRole | null) {
-    if (!value) return;
-    const nextRole = value;
-    const previousRole = role;
-    setRole(nextRole);
+  function handleRoleToggle(role: AppRole, checked: boolean) {
+    const previous = roles;
+    setRoles((prev) =>
+      checked ? [...prev, role] : prev.filter((r) => r !== role),
+    );
     setError(null);
-    setSaved(false);
     startTransition(async () => {
-      const res = await updateUserRole(user.id, nextRole);
+      const res = await toggleUserRole(user.id, role, checked);
       if (res.error) {
-        setRole(previousRole);
+        setRoles(previous);
         setError(res.error);
-        return;
       }
-      setSaved(true);
     });
   }
 
+  function handlePlatformRoleChange(value: AppRole | null) {
+    if (!value) return;
+    const nextRole = value as "employee" | "consultant" | "god";
+    const previous = platformRole;
+    setPlatformRole(nextRole);
+    setError(null);
+    startTransition(async () => {
+      const res = await updatePlatformRole(user.id, nextRole);
+      if (res.error) {
+        setPlatformRole(previous);
+        setError(res.error);
+      }
+    });
+  }
+
+  const isPlatformUser = user.role === "god" || user.role === "consultant";
+
   return (
-    <tr className="border-b border-border last:border-0">
+    <tr className="border-b border-border align-top last:border-0">
       <td className="px-4 py-3 text-foreground">{fullName}</td>
       <td className="px-4 py-3 text-muted-foreground">{user.email ?? "—"}</td>
       <td className="px-4 py-3 text-muted-foreground">{user.job_title ?? "—"}</td>
@@ -125,35 +152,53 @@ function UserRow({
         </td>
       )}
       <td className="px-4 py-3">
-        <div className="flex items-center gap-2">
-          <Select
-            value={role}
-            onValueChange={handleChange}
-            disabled={isOwnRow || isPending}
-          >
-            <SelectTrigger size="sm" className="w-44">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {availableRoles.map((r) => (
-                <SelectItem key={r} value={r}>
-                  {APP_ROLE_LABELS[r]}
-                </SelectItem>
-              ))}
-              {!availableRoles.includes(role) && (
-                <SelectItem value={role}>{APP_ROLE_LABELS[role]}</SelectItem>
-              )}
-            </SelectContent>
-          </Select>
-          {isOwnRow ? (
-            <span className="text-xs text-muted-foreground">(du)</span>
-          ) : (
-            saved &&
-            !isPending && <span className="text-xs text-primary">Gespeichert</span>
-          )}
-        </div>
+        {isPlatformUser ? (
+          <span className="text-xs text-muted-foreground">
+            Plattformrolle – keine Org-Rollen
+          </span>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {assignableOrgRoles.map((role) => (
+              <label key={role} className="flex items-center gap-2 text-xs">
+                <Checkbox
+                  checked={roles.includes(role)}
+                  onCheckedChange={(checked) =>
+                    handleRoleToggle(role, checked === true)
+                  }
+                  disabled={isPending}
+                />
+                {APP_ROLE_LABELS[role]}
+              </label>
+            ))}
+          </div>
+        )}
         {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
       </td>
+      {isGod && (
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Select
+              value={platformRole}
+              onValueChange={handlePlatformRoleChange}
+              disabled={isOwnRow || isPending}
+            >
+              <SelectTrigger size="sm" className="w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="employee">Standard</SelectItem>
+                <SelectItem value="consultant">
+                  {APP_ROLE_LABELS.consultant}
+                </SelectItem>
+                <SelectItem value="god">{APP_ROLE_LABELS.god}</SelectItem>
+              </SelectContent>
+            </Select>
+            {isOwnRow && (
+              <span className="text-xs text-muted-foreground">(du)</span>
+            )}
+          </div>
+        </td>
+      )}
     </tr>
   );
 }

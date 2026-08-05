@@ -19,10 +19,11 @@ const textareaClassName =
 interface BoardActionsProps {
   requestId: string;
   status: ChangeRequestStatus;
-  role: AppRole;
+  orgRoles: AppRole[];
+  isGod: boolean;
 }
 
-export function BoardActions({ requestId, status, role }: BoardActionsProps) {
+export function BoardActions({ requestId, status, orgRoles, isGod }: BoardActionsProps) {
   const router = useRouter();
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +41,17 @@ export function BoardActions({ requestId, status, role }: BoardActionsProps) {
     });
   }
 
-  if (role === "leader" && status === "submitted") {
+  // Rollen sind mehrfach kombinierbar - ein Nutzer kann gleichzeitig
+  // Leader und CAB-Mitglied sein. Der aktuelle Status ist aber immer
+  // eindeutig, daher greift trotzdem höchstens einer der drei Blöcke.
+  const canForwardToCab = (isGod || orgRoles.includes("leader")) && status === "submitted";
+  const canDecideAsCab =
+    (isGod || orgRoles.includes("cab_member")) && status === "cab_review";
+  const canUpdateAsItBoard =
+    (isGod || orgRoles.includes("it_board")) &&
+    (status === "it_backlog" || status === "in_implementation");
+
+  if (canForwardToCab) {
     return (
       <div className="flex flex-col gap-3 border-t border-border pt-4">
         <p className="text-sm text-muted-foreground">
@@ -63,7 +74,7 @@ export function BoardActions({ requestId, status, role }: BoardActionsProps) {
     );
   }
 
-  if (role === "cab_member" && status === "cab_review") {
+  if (canDecideAsCab) {
     return (
       <div className="flex flex-col gap-3 border-t border-border pt-4">
         <label className="text-sm font-medium text-foreground" htmlFor="cab-note">
@@ -101,7 +112,7 @@ export function BoardActions({ requestId, status, role }: BoardActionsProps) {
     );
   }
 
-  if (role === "it_board" && (status === "it_backlog" || status === "in_implementation")) {
+  if (canUpdateAsItBoard) {
     return (
       <div className="flex flex-col gap-3 border-t border-border pt-4">
         <label className="text-sm font-medium text-foreground" htmlFor="it-feedback">

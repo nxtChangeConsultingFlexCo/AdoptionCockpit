@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { getCurrentUser } from "@/lib/auth/roles";
+import { getCurrentUser, userHasRole } from "@/lib/auth/roles";
 import { logout } from "@/lib/auth-actions";
 import { Button } from "@/components/ui/button";
 
 export async function SiteHeader() {
   const user = await getCurrentUser();
-  const canManageUsers = user?.role === "client_admin" || user?.role === "god";
+  const canManageUsers = user ? userHasRole(user, "client_admin") || user.role === "god" : false;
   const isGod = user?.role === "god";
 
   return (
