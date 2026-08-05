@@ -82,7 +82,7 @@ export function AssessmentResultView({
       <section className="flex flex-col items-center gap-6 text-center">
         <div className="flex flex-col items-center gap-1.5">
           <span className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
-            Dein KI-Readiness-Ergebnis
+            Dein Check-Ergebnis
           </span>
           {result.companyName && (
             <span className="text-sm text-muted-foreground">

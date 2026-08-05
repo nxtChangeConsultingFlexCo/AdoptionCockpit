@@ -131,8 +131,8 @@ export default async function RegisterPage({
                   className="text-sm leading-snug font-normal"
                 >
                   Ich stimme der Verarbeitung meiner Daten gemäß der
-                  Datenschutzerklärung zur Durchführung des
-                  KI-Readiness-Checks zu. (Pflichtfeld)
+                  Datenschutzerklärung zur Durchführung von Status-Checks
+                  zu. (Pflichtfeld)
                 </Label>
               </div>
               <div className="flex items-start gap-2">

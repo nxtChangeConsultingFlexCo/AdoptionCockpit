@@ -92,7 +92,7 @@ export default async function CockpitPage() {
               Willkommen in deinem Cockpit
             </h1>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Sobald du deinen ersten KI-Readiness-Check abgeschlossen hast,
+              Sobald du deinen ersten Check abgeschlossen hast,
               siehst du hier deine Kennzahlen und Impulse.
             </p>
             <Button size="lg" render={<Link href="/assessment" />}>

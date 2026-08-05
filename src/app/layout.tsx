@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "KI-Readiness-Check | AdoptionCockpit",
+  title: "Status-Checks | AdoptionCockpit",
   description:
-    "Bewerten Sie die KI-Readiness Ihres Unternehmens in den Dimensionen Datenqualität, Prozessklarheit, kulturelle Akzeptanz sowie Governance & Compliance.",
+    "Status-Checks für den Wandel im Mittelstand: Standortbestimmung in den Dimensionen Datenqualität, Prozessklarheit, kulturelle Akzeptanz sowie Governance & Compliance – mit konkreten nächsten Schritten.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
