@@ -50,6 +50,9 @@ export async function SiteHeader() {
                 <Link href="/change-requests" className={navLinkClassName}>
                   Ideen &amp; Anfragen
                 </Link>
+                <Link href="/settings/team" className={navLinkClassName}>
+                  Mein Team
+                </Link>
                 {canManageUsers && (
                   <>
                     <Link href="/settings/users" className={navLinkClassName}>
