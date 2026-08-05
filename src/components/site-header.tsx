@@ -1,13 +1,11 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/roles";
 import { logout } from "@/lib/auth-actions";
 import { Button } from "@/components/ui/button";
 
 export async function SiteHeader() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
+  const canManageUsers = user?.role === "client_admin" || user?.role === "god";
 
   return (
     <header className="border-b border-zinc-200 dark:border-zinc-800">
@@ -33,6 +31,14 @@ export async function SiteHeader() {
               >
                 Roadmap
               </Link>
+              {canManageUsers && (
+                <Link
+                  href="/settings/users"
+                  className="text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
+                >
+                  Nutzer
+                </Link>
+              )}
             </nav>
             <span className="hidden text-zinc-600 sm:inline dark:text-zinc-400">
               {user.email}

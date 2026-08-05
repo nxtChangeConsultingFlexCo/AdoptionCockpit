@@ -6,6 +6,7 @@ export interface AuthenticatedUser {
   id: string;
   email: string | null;
   role: AppRole;
+  organizationId: string | null;
 }
 
 export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
@@ -18,14 +19,15 @@ export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, organization_id")
     .eq("id", user.id)
     .maybeSingle();
 
   return {
     id: user.id,
     email: user.email ?? null,
-    role: profile?.role ?? "client_user",
+    role: profile?.role ?? "employee",
+    organizationId: profile?.organization_id ?? null,
   };
 }
 
