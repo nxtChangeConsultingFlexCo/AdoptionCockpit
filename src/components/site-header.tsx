@@ -19,7 +19,21 @@ export async function SiteHeader() {
           AdoptionCockpit
         </Link>
         {user ? (
-          <div className="flex items-center gap-3 text-sm">
+          <div className="flex items-center gap-5 text-sm">
+            <nav className="flex items-center gap-4">
+              <Link
+                href="/cockpit"
+                className="text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
+              >
+                Cockpit
+              </Link>
+              <Link
+                href="/roadmap"
+                className="text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
+              >
+                Roadmap
+              </Link>
+            </nav>
             <span className="hidden text-zinc-600 sm:inline dark:text-zinc-400">
               {user.email}
             </span>

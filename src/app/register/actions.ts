@@ -9,7 +9,7 @@ export async function signup(formData: FormData) {
   const firstName = String(formData.get("first_name") ?? "");
   const lastName = String(formData.get("last_name") ?? "");
   const companyName = String(formData.get("company_name") ?? "");
-  const role = String(formData.get("role") ?? "");
+  const jobTitle = String(formData.get("job_title") ?? "");
   const gdprConsent = formData.get("gdpr_consent") === "on";
   const marketingConsent = formData.get("marketing_consent") === "on";
   const next = String(formData.get("next") ?? "/assessment");
@@ -37,7 +37,7 @@ export async function signup(formData: FormData) {
         first_name: firstName,
         last_name: lastName,
         company_name: companyName,
-        role,
+        job_title: jobTitle,
         gdpr_consent: gdprConsent,
         marketing_consent: marketingConsent,
       },

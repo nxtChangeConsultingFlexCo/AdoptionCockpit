@@ -32,7 +32,7 @@ export function ContactGate({ onSubmitGuest, isPending, error }: ContactGateProp
       firstName: String(formData.get("first_name") ?? ""),
       lastName: String(formData.get("last_name") ?? ""),
       companyName: String(formData.get("company_name") ?? ""),
-      role: String(formData.get("role") ?? ""),
+      jobTitle: String(formData.get("job_title") ?? ""),
       gdprConsent,
       marketingConsent,
     });
@@ -99,10 +99,10 @@ export function ContactGate({ onSubmitGuest, isPending, error }: ContactGateProp
               <Input id="company_name" name="company_name" required />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="role">Funktion</Label>
+              <Label htmlFor="job_title">Funktion</Label>
               <Input
-                id="role"
-                name="role"
+                id="job_title"
+                name="job_title"
                 placeholder="z. B. Geschäftsführung, IT-Leitung"
               />
             </div>

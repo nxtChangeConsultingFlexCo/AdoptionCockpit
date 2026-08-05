@@ -27,7 +27,7 @@ export async function saveAuthenticatedAssessment(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("first_name, last_name, company_name, role, gdpr_consent, marketing_consent")
+    .select("first_name, last_name, company_name, job_title, gdpr_consent, marketing_consent")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -41,7 +41,7 @@ export async function saveAuthenticatedAssessment(
       first_name: profile?.first_name ?? null,
       last_name: profile?.last_name ?? null,
       company_name: profile?.company_name ?? null,
-      role: profile?.role ?? null,
+      job_title: profile?.job_title ?? null,
       gdpr_consent: profile?.gdpr_consent ?? false,
       marketing_consent: profile?.marketing_consent ?? false,
       answers,
@@ -64,7 +64,7 @@ export interface GuestContact {
   firstName: string;
   lastName: string;
   companyName: string;
-  role: string;
+  jobTitle: string;
   gdprConsent: boolean;
   marketingConsent: boolean;
 }
@@ -93,7 +93,7 @@ export async function saveGuestAssessment(
       first_name: contact.firstName,
       last_name: contact.lastName,
       company_name: contact.companyName,
-      role: contact.role || null,
+      job_title: contact.jobTitle || null,
       gdpr_consent: contact.gdprConsent,
       marketing_consent: contact.marketingConsent,
       answers,

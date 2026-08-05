@@ -1,12 +1,9 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { ASSESSMENT_QUESTIONS, SCALE_LABELS } from "@/data/questions";
-import {
-  ASSESSMENT_DIMENSIONS,
-  ASSESSMENT_DIMENSION_LABELS,
-  type AssessmentScores,
-} from "@/types/assessment";
+import { ASSESSMENT_DIMENSIONS, ASSESSMENT_DIMENSION_LABELS } from "@/types/assessment";
 import { isAnswersComplete } from "@/lib/scoring";
 import {
   saveAuthenticatedAssessment,
@@ -17,25 +14,22 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ContactGate } from "./contact-gate";
-import { AssessmentResults } from "./assessment-results";
+import { RESULT_STORAGE_KEY, type StoredResult } from "./assessment-result-view";
 
 const STORAGE_KEY = "adoptioncockpit_assessment_answers";
 
-type Step = "questions" | "gate" | "result";
+type Step = "questions" | "gate";
 
 interface AssessmentFlowProps {
   isAuthenticated: boolean;
 }
 
 export function AssessmentFlow({ isAuthenticated }: AssessmentFlowProps) {
+  const router = useRouter();
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [restored, setRestored] = useState(false);
   const [step, setStep] = useState<Step>("questions");
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{
-    scores: AssessmentScores;
-    totalScore: number;
-  } | null>(null);
   const [isPending, startTransition] = useTransition();
 
   // Antworten aus einem vorherigen Durchlauf wiederherstellen (z. B. nach
@@ -74,8 +68,7 @@ export function AssessmentFlow({ isAuthenticated }: AssessmentFlowProps) {
         return;
       }
       window.sessionStorage.removeItem(STORAGE_KEY);
-      setResult({ scores: res.data.scores, totalScore: res.data.totalScore });
-      setStep("result");
+      router.push(`/assessment/result?id=${res.data.id}`);
     });
   }
 
@@ -108,15 +101,16 @@ export function AssessmentFlow({ isAuthenticated }: AssessmentFlowProps) {
         return;
       }
       window.sessionStorage.removeItem(STORAGE_KEY);
-      setResult({ scores: res.data.scores, totalScore: res.data.totalScore });
-      setStep("result");
+      // Gäste können ihr Ergebnis nicht per RLS aus der DB nachladen -
+      // deshalb wird es für die Ergebnis-Seite kurzzeitig zwischengelegt.
+      const storedResult: StoredResult = {
+        totalScore: res.data.totalScore,
+        scores: res.data.scores,
+        companyName: contact.companyName,
+      };
+      window.sessionStorage.setItem(RESULT_STORAGE_KEY, JSON.stringify(storedResult));
+      router.push("/assessment/result");
     });
-  }
-
-  if (step === "result" && result) {
-    return (
-      <AssessmentResults scores={result.scores} totalScore={result.totalScore} />
-    );
   }
 
   if (step === "gate") {

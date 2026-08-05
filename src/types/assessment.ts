@@ -1,3 +1,5 @@
+import type { AppRole } from "./roles";
+
 export const ASSESSMENT_DIMENSIONS = [
   "datenqualitaet",
   "prozessklarheit",
@@ -30,7 +32,7 @@ export interface AssessmentRow {
   user_id: string | null;
   first_name: string | null;
   last_name: string | null;
-  role: string | null;
+  job_title: string | null;
   gdpr_consent: boolean;
   marketing_consent: boolean;
 }
@@ -41,7 +43,8 @@ export interface ProfileRow {
   first_name: string | null;
   last_name: string | null;
   company_name: string | null;
-  role: string | null;
+  job_title: string | null;
+  role: AppRole;
   gdpr_consent: boolean;
   marketing_consent: boolean;
 }

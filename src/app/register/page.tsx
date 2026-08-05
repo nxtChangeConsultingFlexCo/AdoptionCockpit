@@ -54,10 +54,10 @@ export default async function RegisterPage({
               <Input id="company_name" name="company_name" required />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="role">Funktion</Label>
+              <Label htmlFor="job_title">Funktion</Label>
               <Input
-                id="role"
-                name="role"
+                id="job_title"
+                name="job_title"
                 placeholder="z. B. Geschäftsführung, IT-Leitung"
               />
             </div>
