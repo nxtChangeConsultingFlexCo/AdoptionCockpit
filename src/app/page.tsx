@@ -20,13 +20,39 @@ export default async function Home() {
   }
 
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("assessment_templates")
-    .select("id, title, description, slug")
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true });
+  let templates: AssessmentTemplateSummary[] = [];
 
-  const templates = (data ?? []) as AssessmentTemplateSummary[];
+  if (currentUser?.organizationId) {
+    // Angemeldete Org-Mitglieder sehen den freigegebenen Katalog ihrer
+    // Organisation (god- und org-eigene Templates), nicht automatisch
+    // jedes plattformweite Template.
+    const { data } = await supabase
+      .from("organization_assessments")
+      .select(
+        "sort_order, assessment_templates(id, title, description, slug, is_active)",
+      )
+      .eq("organization_id", currentUser.organizationId)
+      .eq("is_available", true)
+      .order("sort_order", { ascending: true });
+
+    templates = ((data ?? []) as unknown as Array<{
+      assessment_templates: AssessmentTemplateSummary & { is_active: boolean };
+    }>)
+      .map((row) => row.assessment_templates)
+      .filter((template): template is AssessmentTemplateSummary & { is_active: boolean } =>
+        Boolean(template?.is_active),
+      );
+  } else {
+    // Gäste (nicht angemeldet) sehen den öffentlichen god-Katalog.
+    const { data } = await supabase
+      .from("assessment_templates")
+      .select("id, title, description, slug")
+      .eq("is_active", true)
+      .is("organization_id", null)
+      .order("sort_order", { ascending: true });
+
+    templates = (data ?? []) as AssessmentTemplateSummary[];
+  }
 
   return (
     <div className="flex flex-1 flex-col items-center bg-zinc-50 dark:bg-black">

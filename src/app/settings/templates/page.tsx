@@ -17,6 +17,7 @@ export default async function TemplatesPage() {
   const { data } = await supabase
     .from("assessment_templates")
     .select("id, title, slug, is_active, sort_order, questions")
+    .is("organization_id", null)
     .order("sort_order", { ascending: true });
 
   const templates = (data ?? []) as TemplateListItem[];

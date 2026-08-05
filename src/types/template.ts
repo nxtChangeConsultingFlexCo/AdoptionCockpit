@@ -21,6 +21,8 @@ export interface AssessmentTemplateRow {
   recommendations: TemplateRecommendations;
   is_active: boolean;
   sort_order: number;
+  organization_id: string | null;
+  based_on_template_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -29,3 +31,13 @@ export type AssessmentTemplateSummary = Pick<
   AssessmentTemplateRow,
   "id" | "title" | "description" | "slug"
 >;
+
+export interface OrganizationAssessmentRow {
+  id: string;
+  organization_id: string;
+  template_id: string;
+  is_available: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
