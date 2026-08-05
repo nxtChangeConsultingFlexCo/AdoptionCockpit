@@ -20,7 +20,7 @@ export type ChangeRequestStatus = (typeof CHANGE_REQUEST_STATUSES)[number];
 export const CHANGE_REQUEST_STATUS_LABELS: Record<ChangeRequestStatus, string> = {
   draft: "Entwurf",
   submitted: "Eingereicht",
-  cab_review: "CAB-Prüfung",
+  cab_review: "CA-Board-Prüfung",
   qualified: "Qualifiziert",
   it_backlog: "IT-Backlog",
   in_implementation: "In Umsetzung",

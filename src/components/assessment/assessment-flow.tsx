@@ -135,7 +135,7 @@ export function AssessmentFlow({
         companyName: contact.companyName,
       };
       window.sessionStorage.setItem(RESULT_STORAGE_KEY, JSON.stringify(storedResult));
-      router.push("/assessment/result");
+      router.push(`/assessment/result?templateId=${templateId}`);
     });
   }
 

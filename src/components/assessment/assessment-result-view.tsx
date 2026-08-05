@@ -11,7 +11,8 @@ import {
   type AssessmentScores,
   type TemplateBenchmark,
 } from "@/types/assessment";
-import { getReadinessTier, TIER_LABELS, TIER_SUMMARIES } from "@/data/result-copy";
+import { getScoreTier, SCORE_TIER_LABELS } from "@/data/result-copy";
+import type { TemplateRecommendations } from "@/types/template";
 
 export const RESULT_STORAGE_KEY = "adoptioncockpit_last_result";
 
@@ -26,6 +27,7 @@ interface AssessmentResultViewProps {
   isAuthenticated: boolean;
   completedAt?: string | null;
   benchmark?: TemplateBenchmark | null;
+  recommendations?: TemplateRecommendations | null;
 }
 
 export function AssessmentResultView({
@@ -33,6 +35,7 @@ export function AssessmentResultView({
   isAuthenticated,
   completedAt,
   benchmark,
+  recommendations,
 }: AssessmentResultViewProps) {
   const router = useRouter();
   const [result, setResult] = useState<StoredResult | null>(initialResult);
@@ -70,7 +73,8 @@ export function AssessmentResultView({
     );
   }
 
-  const tier = getReadinessTier(result.totalScore);
+  const tier = getScoreTier(result.totalScore);
+  const overallRecommendation = recommendations?.overall?.[tier];
   const scoreDiff = benchmark ? result.totalScore - benchmark.medianTotalScore : null;
 
   return (
@@ -98,11 +102,13 @@ export function AssessmentResultView({
 
         <div className="flex flex-col items-center gap-3">
           <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
-            {TIER_LABELS[tier]}
+            {SCORE_TIER_LABELS[tier]}
           </span>
-          <p className="max-w-xl text-base leading-relaxed text-muted-foreground">
-            {TIER_SUMMARIES[tier]}
-          </p>
+          {overallRecommendation && (
+            <p className="max-w-xl text-base leading-relaxed text-muted-foreground">
+              {overallRecommendation}
+            </p>
+          )}
         </div>
 
         {benchmark && scoreDiff !== null && (
@@ -140,14 +146,19 @@ export function AssessmentResultView({
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2">
-        {ASSESSMENT_DIMENSIONS.map((dimension) => (
-          <DimensionCard
-            key={dimension}
-            dimension={dimension}
-            score={result.scores[dimension]}
-            benchmarkScore={benchmark?.medianByDimension[dimension]}
-          />
-        ))}
+        {ASSESSMENT_DIMENSIONS.map((dimension) => {
+          const dimensionScore = result.scores[dimension];
+          const dimensionTier = getScoreTier(dimensionScore);
+          return (
+            <DimensionCard
+              key={dimension}
+              dimension={dimension}
+              score={dimensionScore}
+              recommendation={recommendations?.byDimension?.[dimension]?.[dimensionTier]}
+              benchmarkScore={benchmark?.medianByDimension[dimension]}
+            />
+          );
+        })}
       </section>
 
       <section className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-card px-6 py-10 text-center">

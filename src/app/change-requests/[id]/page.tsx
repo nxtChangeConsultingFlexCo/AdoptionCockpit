@@ -138,7 +138,7 @@ export default async function ChangeRequestDetailPage({
             {changeRequest.cab_decision_note && (
               <div className="rounded-lg bg-muted/50 p-4">
                 <p className="text-xs font-medium text-muted-foreground uppercase">
-                  Entscheidung des Change Advisory Board
+                  Entscheidung des CA Board
                 </p>
                 <p className="mt-1 text-sm text-foreground">
                   {changeRequest.cab_decision_note}

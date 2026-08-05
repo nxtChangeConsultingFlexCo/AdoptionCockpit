@@ -52,8 +52,8 @@ export async function createChangeRequest(formData: FormData) {
 }
 
 // Cluster Lead: übernimmt eine eingereichte Anfrage und leitet sie an
-// das Change Advisory Board weiter. RLS erlaubt jedem "leader" der
-// Organisation diese Aktion (kein Vor-Zuweisen nötig, siehe 0010).
+// das CA Board weiter. RLS erlaubt jedem "leader" der Organisation
+// diese Aktion (kein Vor-Zuweisen nötig, siehe 0010).
 export async function forwardToCab(
   requestId: string,
 ): Promise<ChangeRequestActionResult> {
@@ -75,8 +75,8 @@ export async function forwardToCab(
   return {};
 }
 
-// CAB: qualifiziert (-> geht in den IT-Backlog) oder lehnt eine Anfrage
-// ab, jeweils mit optionaler Begründung.
+// CA Board: qualifiziert (-> geht in den IT-Backlog) oder lehnt eine
+// Anfrage ab, jeweils mit optionaler Begründung.
 export async function decideCabReview(
   requestId: string,
   decision: "qualified" | "rejected",

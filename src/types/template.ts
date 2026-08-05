@@ -1,4 +1,16 @@
 import type { AssessmentQuestion } from "@/data/questions";
+import type { AssessmentDimension } from "./assessment";
+
+export interface RecommendationTiers {
+  low: string;
+  medium: string;
+  high: string;
+}
+
+export interface TemplateRecommendations {
+  byDimension: Partial<Record<AssessmentDimension, Partial<RecommendationTiers>>>;
+  overall: Partial<RecommendationTiers>;
+}
 
 export interface AssessmentTemplateRow {
   id: string;
@@ -6,6 +18,7 @@ export interface AssessmentTemplateRow {
   description: string;
   slug: string;
   questions: AssessmentQuestion[];
+  recommendations: TemplateRecommendations;
   is_active: boolean;
   sort_order: number;
   created_at: string;

@@ -42,11 +42,11 @@ export function BoardActions({ requestId, status, orgRoles, isGod }: BoardAction
   }
 
   // Rollen sind mehrfach kombinierbar - ein Nutzer kann gleichzeitig
-  // Leader und CAB-Mitglied sein. Der aktuelle Status ist aber immer
+  // Leader und CA Board sein. Der aktuelle Status ist aber immer
   // eindeutig, daher greift trotzdem höchstens einer der drei Blöcke.
   const canForwardToCab = (isGod || orgRoles.includes("leader")) && status === "submitted";
   const canDecideAsCab =
-    (isGod || orgRoles.includes("cab_member")) && status === "cab_review";
+    (isGod || orgRoles.includes("ca_board")) && status === "cab_review";
   const canUpdateAsItBoard =
     (isGod || orgRoles.includes("it_board")) &&
     (status === "it_backlog" || status === "in_implementation");
@@ -55,8 +55,8 @@ export function BoardActions({ requestId, status, orgRoles, isGod }: BoardAction
     return (
       <div className="flex flex-col gap-3 border-t border-border pt-4">
         <p className="text-sm text-muted-foreground">
-          Als Cluster Lead kannst du diese Anfrage an das Change Advisory
-          Board weiterleiten.
+          Als Cluster Lead kannst du diese Anfrage an das CA Board
+          weiterleiten.
         </p>
         {error && (
           <Alert variant="destructive">
@@ -68,7 +68,7 @@ export function BoardActions({ requestId, status, orgRoles, isGod }: BoardAction
           disabled={isPending}
           onClick={() => run(() => forwardToCab(requestId))}
         >
-          {isPending ? "Wird weitergeleitet…" : "An CAB weiterleiten"}
+          {isPending ? "Wird weitergeleitet…" : "An CA Board weiterleiten"}
         </Button>
       </div>
     );

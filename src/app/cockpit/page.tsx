@@ -15,11 +15,8 @@ import {
   ASSESSMENT_DIMENSION_LABELS,
   type AssessmentScores,
 } from "@/types/assessment";
-import {
-  DIMENSION_ASSESSMENTS,
-  getReadinessTier,
-  TIER_LABELS,
-} from "@/data/result-copy";
+import { getScoreTier, SCORE_TIER_LABELS } from "@/data/result-copy";
+import type { TemplateRecommendations } from "@/types/template";
 
 interface CompletedAssessment {
   id: string;
@@ -27,6 +24,7 @@ interface CompletedAssessment {
   total_score: number;
   scores: AssessmentScores;
   company_name: string | null;
+  template_id: string | null;
 }
 
 export default async function CockpitPage() {
@@ -35,7 +33,7 @@ export default async function CockpitPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("assessments")
-    .select("id, created_at, total_score, scores, company_name")
+    .select("id, created_at, total_score, scores, company_name, template_id")
     .eq("user_id", user.id)
     .eq("status", "completed")
     .order("created_at", { ascending: false });
@@ -71,7 +69,21 @@ export default async function CockpitPage() {
   }));
   const strongest = dimensionScores.reduce((a, b) => (b.score > a.score ? b : a));
   const weakest = dimensionScores.reduce((a, b) => (b.score < a.score ? b : a));
-  const tier = getReadinessTier(latest.total_score);
+  const tier = getScoreTier(latest.total_score);
+
+  let recommendations: TemplateRecommendations | null = null;
+  if (latest.template_id) {
+    const { data: templateRow } = await supabase
+      .from("assessment_templates")
+      .select("recommendations")
+      .eq("id", latest.template_id)
+      .maybeSingle();
+    if (templateRow?.recommendations) {
+      recommendations = templateRow.recommendations as TemplateRecommendations;
+    }
+  }
+  const weakestRecommendation =
+    recommendations?.byDimension?.[weakest.dimension]?.[getScoreTier(weakest.score)];
 
   return (
     <div className="flex flex-1 justify-center bg-zinc-50 px-4 py-12 dark:bg-black">
@@ -99,7 +111,7 @@ export default async function CockpitPage() {
           <KpiCard
             label="Readiness-Score"
             value={`${latest.total_score}`}
-            sublabel={TIER_LABELS[tier]}
+            sublabel={SCORE_TIER_LABELS[tier]}
           />
           <KpiCard
             label="Stärkste Dimension"
@@ -130,9 +142,11 @@ export default async function CockpitPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {DIMENSION_ASSESSMENTS[weakest.dimension][getReadinessTier(weakest.score)]}
-                </p>
+                {weakestRecommendation && (
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {weakestRecommendation}
+                  </p>
+                )}
                 <Button
                   variant="outline"
                   size="sm"

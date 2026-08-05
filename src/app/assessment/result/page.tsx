@@ -4,15 +4,16 @@ import {
   type StoredResult,
 } from "@/components/assessment/assessment-result-view";
 import type { AssessmentScores, TemplateBenchmark } from "@/types/assessment";
+import type { TemplateRecommendations } from "@/types/template";
 
 const MIN_BENCHMARK_SAMPLE_SIZE = 5;
 
 export default async function AssessmentResultPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string }>;
+  searchParams: Promise<{ id?: string; templateId?: string }>;
 }) {
-  const { id } = await searchParams;
+  const { id, templateId } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -21,6 +22,7 @@ export default async function AssessmentResultPage({
   let initialResult: StoredResult | null = null;
   let completedAt: string | null = null;
   let benchmark: TemplateBenchmark | null = null;
+  let effectiveTemplateId: string | null = templateId ?? null;
 
   if (user && id) {
     const { data } = await supabase
@@ -37,6 +39,7 @@ export default async function AssessmentResultPage({
         companyName: data.company_name,
       };
       completedAt = data.created_at;
+      effectiveTemplateId = data.template_id;
 
       if (data.template_id) {
         const { data: benchmarkRows } = await supabase.rpc(
@@ -69,6 +72,19 @@ export default async function AssessmentResultPage({
     }
   }
 
+  let recommendations: TemplateRecommendations | null = null;
+  if (effectiveTemplateId) {
+    const { data: templateRow } = await supabase
+      .from("assessment_templates")
+      .select("recommendations")
+      .eq("id", effectiveTemplateId)
+      .maybeSingle();
+
+    if (templateRow?.recommendations) {
+      recommendations = templateRow.recommendations as TemplateRecommendations;
+    }
+  }
+
   return (
     <div className="flex flex-1 justify-center bg-zinc-50 px-4 py-12 dark:bg-black">
       <div className="w-full max-w-3xl">
@@ -77,6 +93,7 @@ export default async function AssessmentResultPage({
           isAuthenticated={Boolean(user)}
           completedAt={completedAt}
           benchmark={benchmark}
+          recommendations={recommendations}
         />
       </div>
     </div>

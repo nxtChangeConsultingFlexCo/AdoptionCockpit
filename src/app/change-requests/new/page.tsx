@@ -30,7 +30,7 @@ export default async function NewChangeRequestPage({
             <CardTitle>Neue Idee einreichen</CardTitle>
             <CardDescription>
               Beschreibe kurz, was verändert oder verbessert werden sollte.
-              Dein Cluster Lead und das Change Advisory Board prüfen deine
+              Dein Cluster Lead und das CA Board prüfen deine
               Anfrage.
             </CardDescription>
           </CardHeader>

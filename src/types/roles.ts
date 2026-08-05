@@ -4,7 +4,7 @@ export const APP_ROLES = [
   "client_admin",
   "employee",
   "leader",
-  "cab_member",
+  "ca_board",
   "it_board",
   "steering_committee",
 ] as const;
@@ -17,7 +17,7 @@ export const APP_ROLE_LABELS: Record<AppRole, string> = {
   client_admin: "Organisations-Admin",
   employee: "Mitarbeiter",
   leader: "Cluster Lead",
-  cab_member: "CAB-Mitglied",
+  ca_board: "CA Board",
   it_board: "IT Board",
   steering_committee: "Steering Committee",
 };
@@ -28,7 +28,7 @@ export const APP_ROLE_LABELS: Record<AppRole, string> = {
 export const ASSIGNABLE_ORG_ROLES: AppRole[] = [
   "employee",
   "leader",
-  "cab_member",
+  "ca_board",
   "it_board",
   "steering_committee",
   "client_admin",

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { AssessmentQuestion } from "@/data/questions";
+import type { TemplateRecommendations } from "@/types/template";
 
 export interface TemplateActionResult {
   error?: string;
@@ -16,6 +17,7 @@ export interface TemplateInput {
   questions: AssessmentQuestion[];
   isActive: boolean;
   sortOrder: number;
+  recommendations: TemplateRecommendations;
 }
 
 function validateTemplate(input: TemplateInput): string | null {
@@ -54,6 +56,7 @@ export async function createTemplate(
       questions: input.questions,
       is_active: input.isActive,
       sort_order: input.sortOrder,
+      recommendations: input.recommendations,
     })
     .select("id")
     .single();
@@ -84,6 +87,7 @@ export async function updateTemplate(
       questions: input.questions,
       is_active: input.isActive,
       sort_order: input.sortOrder,
+      recommendations: input.recommendations,
     })
     .eq("id", id)
     .select("id");

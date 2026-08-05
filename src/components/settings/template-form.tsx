@@ -16,9 +16,23 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   ASSESSMENT_DIMENSIONS,
   ASSESSMENT_DIMENSION_LABELS,
+  type AssessmentDimension,
 } from "@/types/assessment";
+import { SCORE_TIERS, SCORE_TIER_LABELS, type ScoreTier } from "@/data/result-copy";
 import type { AssessmentQuestion } from "@/data/questions";
-import type { AssessmentTemplateRow } from "@/types/template";
+import type {
+  AssessmentTemplateRow,
+  TemplateRecommendations,
+} from "@/types/template";
+
+function emptyRecommendations(): TemplateRecommendations {
+  return {
+    byDimension: Object.fromEntries(
+      ASSESSMENT_DIMENSIONS.map((dim) => [dim, { low: "", medium: "", high: "" }]),
+    ) as TemplateRecommendations["byDimension"],
+    overall: { low: "", medium: "", high: "" },
+  };
+}
 
 const textareaClassName =
   "flex w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
@@ -39,8 +53,45 @@ export function TemplateForm({ template }: TemplateFormProps) {
   const [questions, setQuestions] = useState<AssessmentQuestion[]>(
     template?.questions ?? [],
   );
+  const [recommendations, setRecommendations] = useState<TemplateRecommendations>(() => {
+    const base = emptyRecommendations();
+    if (!template?.recommendations) return base;
+    return {
+      byDimension: {
+        ...base.byDimension,
+        ...Object.fromEntries(
+          ASSESSMENT_DIMENSIONS.map((dim) => [
+            dim,
+            { ...base.byDimension[dim], ...template.recommendations.byDimension?.[dim] },
+          ]),
+        ),
+      },
+      overall: { ...base.overall, ...template.recommendations.overall },
+    };
+  });
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  function updateDimensionRecommendation(
+    dimension: AssessmentDimension,
+    tier: ScoreTier,
+    value: string,
+  ) {
+    setRecommendations((prev) => ({
+      ...prev,
+      byDimension: {
+        ...prev.byDimension,
+        [dimension]: { ...prev.byDimension[dimension], [tier]: value },
+      },
+    }));
+  }
+
+  function updateOverallRecommendation(tier: ScoreTier, value: string) {
+    setRecommendations((prev) => ({
+      ...prev,
+      overall: { ...prev.overall, [tier]: value },
+    }));
+  }
 
   function addQuestion() {
     setQuestions((prev) => [
@@ -68,6 +119,7 @@ export function TemplateForm({ template }: TemplateFormProps) {
       questions,
       isActive,
       sortOrder,
+      recommendations,
     };
 
     startTransition(async () => {
@@ -228,6 +280,69 @@ export function TemplateForm({ template }: TemplateFormProps) {
             <p className="text-sm text-muted-foreground">Noch keine Fragen.</p>
           )}
         </div>
+      </div>
+
+      <div className="flex flex-col gap-4 border-t border-border pt-6">
+        <div>
+          <h2 className="text-lg font-medium text-foreground">
+            Handlungsempfehlungen
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Texte je Score-Stufe (niedrig / mittel / hoch) – werden im
+            Ergebnis passend zum erreichten Score angezeigt. Optional.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
+          <h3 className="text-sm font-medium text-foreground">
+            Gesamtempfehlung (nach Gesamtscore)
+          </h3>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {SCORE_TIERS.map((tier) => (
+              <div key={tier} className="flex flex-col gap-1">
+                <Label className="text-xs text-muted-foreground">
+                  {SCORE_TIER_LABELS[tier]}
+                </Label>
+                <textarea
+                  value={recommendations.overall[tier] ?? ""}
+                  onChange={(e) =>
+                    updateOverallRecommendation(tier, e.target.value)
+                  }
+                  rows={3}
+                  className={textareaClassName}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {ASSESSMENT_DIMENSIONS.map((dimension) => (
+          <div
+            key={dimension}
+            className="flex flex-col gap-3 rounded-lg border border-border p-4"
+          >
+            <h3 className="text-sm font-medium text-foreground">
+              {ASSESSMENT_DIMENSION_LABELS[dimension]}
+            </h3>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {SCORE_TIERS.map((tier) => (
+                <div key={tier} className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">
+                    {SCORE_TIER_LABELS[tier]}
+                  </Label>
+                  <textarea
+                    value={recommendations.byDimension[dimension]?.[tier] ?? ""}
+                    onChange={(e) =>
+                      updateDimensionRecommendation(dimension, tier, e.target.value)
+                    }
+                    rows={3}
+                    className={textareaClassName}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="flex gap-3">

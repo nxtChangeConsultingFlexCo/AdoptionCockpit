@@ -1,16 +1,19 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ASSESSMENT_DIMENSION_LABELS, type AssessmentDimension } from "@/types/assessment";
-import { DIMENSION_ASSESSMENTS, getReadinessTier } from "@/data/result-copy";
 
 interface DimensionCardProps {
   dimension: AssessmentDimension;
   score: number;
+  recommendation?: string;
   benchmarkScore?: number;
 }
 
-export function DimensionCard({ dimension, score, benchmarkScore }: DimensionCardProps) {
-  const tier = getReadinessTier(score);
-
+export function DimensionCard({
+  dimension,
+  score,
+  recommendation,
+  benchmarkScore,
+}: DimensionCardProps) {
   return (
     <Card>
       <CardHeader className="flex-row items-baseline justify-between gap-4 space-y-0">
@@ -35,9 +38,11 @@ export function DimensionCard({ dimension, score, benchmarkScore }: DimensionCar
             />
           )}
         </div>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          {DIMENSION_ASSESSMENTS[dimension][tier]}
-        </p>
+        {recommendation && (
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {recommendation}
+          </p>
+        )}
         {typeof benchmarkScore === "number" && (
           <p className="text-xs text-muted-foreground">
             Vergleich (Median): {benchmarkScore}
