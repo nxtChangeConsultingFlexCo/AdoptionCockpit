@@ -15,10 +15,17 @@ export async function createInvitation(
   role: AppRole,
   organizationId: string,
 ): Promise<CreateInvitationResult> {
-  const user = await requireRole(["god"], "/settings/invitations");
+  const user = await requireRole(["god", "client_admin"], "/settings/users");
 
   if (!email.trim() || !organizationId) {
     return { error: "Bitte E-Mail und Organisation angeben." };
+  }
+
+  // client_admin darf nur in die eigene Organisation einladen - die
+  // RLS-Policy erzwingt das ohnehin serverseitig, hier zusätzlich für
+  // eine klare Fehlermeldung statt eines generischen DB-Fehlers.
+  if (user.role === "client_admin" && organizationId !== user.organizationId) {
+    return { error: "Du kannst nur in deine eigene Organisation einladen." };
   }
 
   const supabase = await createClient();
@@ -37,6 +44,6 @@ export async function createInvitation(
     return { error: error?.message ?? "Etwas ist schiefgelaufen." };
   }
 
-  revalidatePath("/settings/invitations");
+  revalidatePath("/settings/users");
   return { token: data.token };
 }

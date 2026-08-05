@@ -47,20 +47,12 @@ export async function SiteHeader() {
                 </Link>
               )}
               {isGod && (
-                <>
-                  <Link
-                    href="/settings/templates"
-                    className="text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
-                  >
-                    Templates
-                  </Link>
-                  <Link
-                    href="/settings/invitations"
-                    className="text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
-                  >
-                    Einladungen
-                  </Link>
-                </>
+                <Link
+                  href="/settings/templates"
+                  className="text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
+                >
+                  Templates
+                </Link>
               )}
             </nav>
             <span className="hidden text-zinc-600 sm:inline dark:text-zinc-400">
