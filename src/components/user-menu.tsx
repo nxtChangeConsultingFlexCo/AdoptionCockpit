@@ -3,7 +3,6 @@
 import { useTransition } from "react";
 import Link from "next/link";
 import { logout } from "@/lib/auth-actions";
-import { endImpersonation } from "@/app/impersonate/actions";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -25,10 +24,9 @@ function initials(name: string): string {
 interface UserMenuProps {
   displayName: string;
   email: string | null;
-  isImpersonating: boolean;
 }
 
-export function UserMenu({ displayName, email, isImpersonating }: UserMenuProps) {
+export function UserMenu({ displayName, email }: UserMenuProps) {
   const [isPending, startTransition] = useTransition();
 
   return (
@@ -50,15 +48,6 @@ export function UserMenu({ displayName, email, isImpersonating }: UserMenuProps)
         <DropdownMenuLinkItem closeOnClick render={<Link href="/settings/profile" />}>
           Einstellungen
         </DropdownMenuLinkItem>
-        {isImpersonating && (
-          <DropdownMenuItem
-            closeOnClick
-            disabled={isPending}
-            onClick={() => startTransition(() => endImpersonation())}
-          >
-            Mimik beenden
-          </DropdownMenuItem>
-        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           variant="destructive"

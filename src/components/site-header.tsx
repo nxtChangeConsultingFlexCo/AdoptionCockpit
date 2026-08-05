@@ -101,11 +101,7 @@ export async function SiteHeader() {
                 )}
               </nav>
             )}
-            <UserMenu
-              displayName={user.displayName}
-              email={user.email}
-              isImpersonating={Boolean(user.impersonatorId)}
-            />
+            <UserMenu displayName={user.displayName} email={user.email} />
           </div>
         ) : (
           <div className="flex items-center gap-2">
