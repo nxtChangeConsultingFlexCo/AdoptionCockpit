@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { getCurrentUser, userHasRole } from "@/lib/auth/roles";
-import { logout } from "@/lib/auth-actions";
 import { endImpersonation } from "@/app/impersonate/actions";
 import { Button } from "@/components/ui/button";
+import { UserMenu } from "@/components/user-menu";
 
 const navLinkClassName =
   "text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50";
@@ -87,17 +87,12 @@ export async function SiteHeader() {
                 )}
               </nav>
             )}
-            <Link
-              href="/settings/profile"
-              className="hidden text-zinc-600 hover:text-zinc-950 sm:inline dark:text-zinc-400 dark:hover:text-zinc-50"
-            >
-              {user.email}
-            </Link>
-            <form action={logout}>
-              <Button type="submit" variant="ghost" size="sm">
-                Abmelden
-              </Button>
-            </form>
+            <UserMenu
+              displayName={user.displayName}
+              email={user.email}
+              isGod={isGod}
+              canManageUsers={canManageUsers}
+            />
           </div>
         ) : (
           <div className="flex items-center gap-2">
