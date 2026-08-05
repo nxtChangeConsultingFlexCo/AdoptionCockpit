@@ -8,11 +8,12 @@ export interface AssignmentActionResult {
   error?: string;
 }
 
-// Für das Drag & Drop-Board: immer die generische Beziehung
-// ('reports_to') - relation_type wird nirgends für Zugriffslogik
-// ausgewertet (nur is_ancestor_of()'s parent_user_id-Kette zählt),
-// insofern reicht hier ein einziger, generischer Wert statt der
-// typisierten Varianten aus der alten Formular-UI.
+// Für das Team-Board: immer 'leader_employee' - das Board bildet
+// ausschließlich die operative Team-Zuordnung (Mitarbeiter:in -> Cluster
+// Lead) ab, nicht Gremien-Mitgliedschaft (die läuft flach über
+// profile_roles, siehe GremienMatrix). relation_type wird nirgends für
+// Zugriffslogik ausgewertet (nur is_ancestor_of()'s parent_user_id-
+// Kette zählt), der Wert ist rein beschreibend.
 export async function setAssignment(
   childUserId: string,
   parentUserId: string,
@@ -49,7 +50,7 @@ export async function setAssignment(
     {
       child_user_id: childUserId,
       parent_user_id: parentUserId,
-      relation_type: "reports_to",
+      relation_type: "leader_employee",
       organization_id: childProfile.organization_id,
     },
     { onConflict: "child_user_id" },

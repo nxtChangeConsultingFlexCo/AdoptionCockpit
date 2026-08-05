@@ -6,7 +6,11 @@ import { setAssignment, deleteAssignment } from "@/app/settings/assignments/acti
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { APP_ROLE_LABELS, type AppRole } from "@/types/roles";
 
-const BOARD_ROLES: AppRole[] = ["leader", "ca_board", "steering_committee", "it_board"];
+// Team-Board bildet ausschließlich die operative Berichtskette ab
+// (Mitarbeiter:in -> Cluster Lead). Gremien-Mitgliedschaft (CA Board/
+// IT Board/Steering Committee) ist flache, mehrfach mögliche
+// Zugehörigkeit ohne Parent-Kette - siehe GremienMatrix daneben.
+const BOARD_ROLES: AppRole[] = ["leader"];
 const UNASSIGNED = "__unassigned__";
 
 export interface BoardMember {
@@ -181,10 +185,10 @@ export function AssignmentBoard({
         </Alert>
       )}
       <p className="text-xs text-muted-foreground">
-        Karten per Drag &amp; Drop auf eine Person in der Zielspalte ziehen,
-        oder das Dropdown auf der Karte nutzen.
+        Mitarbeitende auf die Karte ihres Cluster Leads ziehen, oder das
+        Dropdown auf der Karte nutzen.
       </p>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
           <h3 className="text-sm font-semibold text-foreground">
             Nicht zugeordnet

@@ -48,6 +48,7 @@ export async function toggleUserRole(
   }
 
   revalidatePath("/settings/users");
+  revalidatePath("/settings/assignments");
   return {};
 }
 

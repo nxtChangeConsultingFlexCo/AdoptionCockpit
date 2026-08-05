@@ -1,6 +1,7 @@
 import { requireRole } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { AssignmentBoard, type BoardMember } from "@/components/settings/assignment-board";
+import { GremienMatrix } from "@/components/settings/gremien-matrix";
 import { OrgPicker } from "@/components/settings/org-picker";
 import type { AppRole } from "@/types/roles";
 
@@ -82,9 +83,9 @@ export default async function AssignmentsPage({
               Zuordnungen
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Ziehe Personen auf ihre Leader, CA Board-, Steering
-              Committee- oder IT Board-Zugehörigkeit. Das steuert, wer
-              wessen Check-Ergebnisse einsehen darf.
+              Team-Zuordnung und Gremien-Mitgliedschaft sind getrennt: eine
+              Person kann Cluster Lead und gleichzeitig Mitglied in
+              mehreren Gremien sein.
             </p>
           </div>
           {isGod && (
@@ -97,7 +98,33 @@ export default async function AssignmentsPage({
             Keine Organisation ausgewählt.
           </div>
         ) : (
-          <AssignmentBoard members={members} assignments={assignments} />
+          <>
+            <section className="flex flex-col gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Team</h2>
+                <p className="text-sm text-muted-foreground">
+                  Wer berichtet an welchen Cluster Lead. Steuert, wessen
+                  Check-Ergebnisse ein Lead einsehen darf.
+                </p>
+              </div>
+              <AssignmentBoard members={members} assignments={assignments} />
+            </section>
+
+            <section className="flex flex-col gap-3 border-t border-border pt-8">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">
+                  Gremien
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  CA Board, IT Board und Steering Committee sind
+                  unabhängige Mitgliedschaften, keine Berichtskette -
+                  Mehrfachmitgliedschaft ist möglich. Steering bleibt
+                  Aufsicht, ohne operative Zuordnung.
+                </p>
+              </div>
+              <GremienMatrix members={members} />
+            </section>
+          </>
         )}
       </div>
     </div>
