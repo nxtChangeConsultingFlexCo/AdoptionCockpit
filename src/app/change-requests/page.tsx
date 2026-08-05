@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
+import { RoadmapTabs } from "@/components/roadmap-tabs";
 import { StatusBadge } from "@/components/change-requests/status-badge";
 import type { ChangeRequestRow } from "@/types/governance";
 
@@ -21,15 +22,19 @@ export default async function ChangeRequestsPage() {
   return (
     <div className="flex flex-1 justify-center bg-zinc-50 px-4 py-12 dark:bg-black">
       <div className="flex w-full max-w-3xl flex-col gap-8">
+        <div>
+          <span className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
+            Roadmap
+          </span>
+          <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
+            Eure Change-Roadmap
+          </h1>
+        </div>
+
+        <RoadmapTabs />
+
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <span className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
-              Change Governance
-            </span>
-            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
-              Ideen &amp; Anfragen
-            </h1>
-          </div>
+          <h2 className="text-lg font-semibold text-foreground">Anfragen</h2>
           <Button render={<Link href="/change-requests/new" />}>
             Neue Idee einreichen
           </Button>

@@ -1,11 +1,20 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
-import { Button } from "@/components/ui/button";
+import { RoadmapTabs } from "@/components/roadmap-tabs";
 import { StatusBadge } from "@/components/change-requests/status-badge";
-import type { ChangeRequestRow } from "@/types/governance";
+import type { ChangeRequestRow, ChangeRequestStatus } from "@/types/governance";
 
 const NO_PHASE_LABEL = "Noch nicht eingeplant";
+
+// Plan zeigt nur, was das CA Board bereits qualifiziert hat - der Rest
+// läuft in der Pipeline unter dem Anfragen-Tab.
+const PLANNABLE_STATUSES: ChangeRequestStatus[] = [
+  "qualified",
+  "it_backlog",
+  "in_implementation",
+  "done",
+];
 
 function formatDate(value: string | null): string | null {
   if (!value) return null;
@@ -17,7 +26,7 @@ function formatDate(value: string | null): string | null {
 }
 
 export default async function RoadmapPage() {
-  const user = await requireUser("/roadmap");
+  await requireUser("/roadmap");
   const supabase = await createClient();
 
   // RLS ("Org members can view relevant change requests" /
@@ -27,6 +36,7 @@ export default async function RoadmapPage() {
   const { data } = await supabase
     .from("change_requests")
     .select("*")
+    .in("status", PLANNABLE_STATUSES)
     .order("target_date", { ascending: true, nullsFirst: false });
 
   const requests = (data ?? []) as ChangeRequestRow[];
@@ -52,31 +62,27 @@ export default async function RoadmapPage() {
     orderedPhases.push([NO_PHASE_LABEL, phases.get(NO_PHASE_LABEL)!]);
   }
 
-  const canCreate = Boolean(user.organizationId);
-
   return (
     <div className="flex flex-1 justify-center bg-zinc-50 px-4 py-12 dark:bg-black">
       <div className="w-full max-w-3xl">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <span className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
-              Roadmap
-            </span>
-            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
-              Eure Change-Roadmap
-            </h1>
-          </div>
-          {canCreate && (
-            <Button render={<Link href="/change-requests/new" />}>
-              Neue Idee einreichen
-            </Button>
-          )}
+        <div className="flex flex-col gap-1">
+          <span className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
+            Roadmap
+          </span>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+            Eure Change-Roadmap
+          </h1>
+        </div>
+
+        <div className="mt-6">
+          <RoadmapTabs />
         </div>
 
         {requests.length === 0 ? (
           <div className="mt-10 rounded-2xl border border-dashed border-border px-6 py-16 text-center">
             <p className="text-sm text-muted-foreground">
-              Noch keine Change Requests vorhanden.
+              Noch nichts eingeplant. Qualifizierte Anfragen erscheinen hier,
+              sobald das CA Board eine Phase und ein Zieldatum festgelegt hat.
             </p>
           </div>
         ) : (

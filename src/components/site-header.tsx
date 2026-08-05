@@ -61,14 +61,13 @@ export async function SiteHeader() {
               </nav>
             ) : (
               <nav className="flex items-center gap-4">
-                <Link href="/cockpit" className={navLinkClassName}>
-                  Cockpit
-                </Link>
+                {(isClientAdmin || hasBoardRole) && (
+                  <Link href="/cockpit" className={navLinkClassName}>
+                    Cockpit
+                  </Link>
+                )}
                 <Link href="/roadmap" className={navLinkClassName}>
                   Roadmap
-                </Link>
-                <Link href="/change-requests" className={navLinkClassName}>
-                  Anfragen
                 </Link>
                 {isClientAdmin ? (
                   <NavDropdown
