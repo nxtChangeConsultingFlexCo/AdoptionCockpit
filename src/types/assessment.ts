@@ -64,6 +64,7 @@ export interface ProfileRow {
   company_name: string | null;
   job_title: string | null;
   email: string | null;
+  phone: string | null;
   role: AppRole;
   organization_id: string | null;
   gdpr_consent: boolean;

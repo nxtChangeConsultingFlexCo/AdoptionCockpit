@@ -59,6 +59,12 @@ export async function SiteHeader() {
                       Nutzer
                     </Link>
                     <Link
+                      href="/settings/assignments"
+                      className={navLinkClassName}
+                    >
+                      Zuordnungen
+                    </Link>
+                    <Link
                       href="/settings/assessments"
                       className={navLinkClassName}
                     >
@@ -68,9 +74,12 @@ export async function SiteHeader() {
                 )}
               </nav>
             )}
-            <span className="hidden text-zinc-600 sm:inline dark:text-zinc-400">
+            <Link
+              href="/settings/profile"
+              className="hidden text-zinc-600 hover:text-zinc-950 sm:inline dark:text-zinc-400 dark:hover:text-zinc-50"
+            >
               {user.email}
-            </span>
+            </Link>
             <form action={logout}>
               <Button type="submit" variant="ghost" size="sm">
                 Abmelden
