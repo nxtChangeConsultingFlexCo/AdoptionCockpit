@@ -62,11 +62,9 @@ export async function SiteHeader() {
               </nav>
             ) : (
               <nav className="flex items-center gap-4">
-                {(isClientAdmin || hasBoardRole) && (
-                  <Link href="/cockpit" className={navLinkClassName}>
-                    Cockpit
-                  </Link>
-                )}
+                <Link href="/cockpit" className={navLinkClassName}>
+                  Cockpit
+                </Link>
                 <Link href="/roadmap" className={navLinkClassName}>
                   Roadmap
                 </Link>
@@ -103,6 +101,7 @@ export async function SiteHeader() {
                     items={[
                       { href: "/settings/users", label: "Nutzer" },
                       { href: "/settings/assignments", label: "Zuordnungen" },
+                      { href: "/settings/cockpit", label: "Cockpit-KPIs" },
                     ]}
                   />
                 )}

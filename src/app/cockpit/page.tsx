@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/auth/roles";
+import { requireUser, userHasRole } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { KpiCard } from "@/components/cockpit/kpi-card";
+import { CockpitKpiTile } from "@/components/cockpit/cockpit-kpi-tile";
 import {
   ASSESSMENT_DIMENSIONS,
   ASSESSMENT_DIMENSION_LABELS,
@@ -17,6 +18,13 @@ import {
 } from "@/types/assessment";
 import { getScoreTier, SCORE_TIER_LABELS } from "@/data/result-copy";
 import type { TemplateRecommendations } from "@/types/template";
+import { computeCockpitKpis } from "@/lib/cockpit-kpis";
+import {
+  COCKPIT_KPI_LABELS,
+  COCKPIT_KPI_HREFS,
+  resolveVisibleKpis,
+  type CockpitKpiVisibilityConfig,
+} from "@/types/cockpit";
 
 interface CompletedAssessment {
   id: string;
@@ -29,8 +37,23 @@ interface CompletedAssessment {
 
 export default async function CockpitPage() {
   const user = await requireUser("/cockpit");
-
   const supabase = await createClient();
+
+  const isAdmin = user.role === "god" || userHasRole(user, "client_admin");
+  let visibilityConfig: CockpitKpiVisibilityConfig | null = null;
+  if (user.organizationId) {
+    const { data: org } = await supabase
+      .from("organizations")
+      .select("cockpit_kpi_visibility")
+      .eq("id", user.organizationId)
+      .maybeSingle();
+    visibilityConfig = (org?.cockpit_kpi_visibility ??
+      null) as CockpitKpiVisibilityConfig | null;
+  }
+  const visibleKpiIds = resolveVisibleKpis(isAdmin, user.orgRoles, visibilityConfig);
+  const kpiValues =
+    visibleKpiIds.length > 0 ? await computeCockpitKpis(supabase, user.id) : null;
+
   const { data } = await supabase
     .from("assessments")
     .select("id, created_at, total_score, scores, company_name, template_id")
@@ -41,23 +64,42 @@ export default async function CockpitPage() {
   const assessments = (data ?? []) as CompletedAssessment[];
   const latest = assessments[0];
 
+  const kpiSection = kpiValues && visibleKpiIds.length > 0 && (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-lg font-semibold text-foreground">Überblick</h2>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {visibleKpiIds.map((id) => (
+          <CockpitKpiTile
+            key={id}
+            label={COCKPIT_KPI_LABELS[id]}
+            value={kpiValues[id]}
+            href={COCKPIT_KPI_HREFS[id]}
+          />
+        ))}
+      </div>
+    </section>
+  );
+
   if (!latest) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-zinc-50 px-4 py-12 dark:bg-black">
-        <div className="flex w-full max-w-md flex-col items-center gap-4 text-center">
-          <span className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
-            Adoptions-Cockpit
-          </span>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Willkommen in deinem Cockpit
-          </h1>
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            Sobald du deinen ersten KI-Readiness-Check abgeschlossen hast,
-            siehst du hier deine Kennzahlen und Impulse.
-          </p>
-          <Button size="lg" render={<Link href="/assessment" />}>
-            Check starten
-          </Button>
+      <div className="flex flex-1 justify-center bg-zinc-50 px-4 py-12 dark:bg-black">
+        <div className="flex w-full max-w-4xl flex-col gap-10">
+          <div className="flex flex-col items-center gap-4 py-8 text-center">
+            <span className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
+              Adoptions-Cockpit
+            </span>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+              Willkommen in deinem Cockpit
+            </h1>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Sobald du deinen ersten KI-Readiness-Check abgeschlossen hast,
+              siehst du hier deine Kennzahlen und Impulse.
+            </p>
+            <Button size="lg" render={<Link href="/assessment" />}>
+              Check starten
+            </Button>
+          </div>
+          {kpiSection}
         </div>
       </div>
     );
@@ -106,6 +148,8 @@ export default async function CockpitPage() {
             })}
           </p>
         </div>
+
+        {kpiSection}
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard
