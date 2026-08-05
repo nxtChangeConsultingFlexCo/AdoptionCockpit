@@ -32,12 +32,17 @@ export type AssessmentTemplateSummary = Pick<
   "id" | "title" | "description" | "slug"
 >;
 
+export type AssessmentScopeType = "org" | "roles" | "users";
+
 export interface OrganizationAssessmentRow {
   id: string;
   organization_id: string;
   template_id: string;
   is_available: boolean;
   sort_order: number;
+  scope_type: AssessmentScopeType;
+  role_list: string[];
+  user_ids: string[];
   created_at: string;
   updated_at: string;
 }

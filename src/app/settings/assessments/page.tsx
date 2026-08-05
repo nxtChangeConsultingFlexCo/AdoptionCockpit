@@ -1,11 +1,16 @@
 import { requireRole } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { AssessmentAvailabilityToggle } from "@/components/settings/assessment-availability-toggle";
+import { AssessmentScopeEditor } from "@/components/settings/assessment-scope-editor";
+import type { AssessmentScopeType } from "@/types/template";
 
 interface CatalogEntry {
   id: string;
   is_available: boolean;
   sort_order: number;
+  scope_type: AssessmentScopeType;
+  role_list: string[];
+  user_ids: string[];
   assessment_templates: {
     id: string;
     title: string;
@@ -46,7 +51,7 @@ export default async function OrgAssessmentsPage() {
       ? await supabase
           .from("organization_assessments")
           .select(
-            "id, is_available, sort_order, assessment_templates(id, title, slug, is_active)",
+            "id, is_available, sort_order, scope_type, role_list, user_ids, assessment_templates(id, title, slug, is_active)",
           )
           .eq("organization_id", organizationId)
           .order("sort_order", { ascending: true })
@@ -59,6 +64,23 @@ export default async function OrgAssessmentsPage() {
       assessment_templates: NonNullable<CatalogEntry["assessment_templates"]>;
     } => Boolean(entry.assessment_templates),
   );
+
+  const { data: memberData } =
+    canManageCatalog && organizationId
+      ? await supabase
+          .from("profiles")
+          .select("id, first_name, last_name, email")
+          .eq("organization_id", organizationId)
+          .order("first_name", { ascending: true })
+      : { data: [] as ProfileSummary[] };
+
+  const orgMembers = ((memberData ?? []) as ProfileSummary[]).map((p) => ({
+    id: p.id,
+    name:
+      [p.first_name, p.last_name].filter(Boolean).join(" ") ||
+      p.email ||
+      "Unbekannt",
+  }));
 
   // RLS ("Client admins can view assessments in their organization" /
   // "Steering committee can view assessments in their organization")
@@ -122,9 +144,9 @@ export default async function OrgAssessmentsPage() {
                 {catalog.map((entry) => (
                   <div
                     key={entry.id}
-                    className="flex items-center justify-between gap-4 rounded-xl border border-border bg-card px-5 py-4"
+                    className="flex flex-col gap-3 rounded-xl border border-border bg-card px-5 py-4 sm:flex-row sm:items-start sm:justify-between"
                   >
-                    <div className="flex flex-col gap-0.5">
+                    <div className="flex flex-col gap-1">
                       <span className="font-medium text-foreground">
                         {entry.assessment_templates.title}
                       </span>
@@ -133,6 +155,14 @@ export default async function OrgAssessmentsPage() {
                           Vom Anbieter deaktiviert
                         </span>
                       )}
+                      <AssessmentScopeEditor
+                        organizationId={organizationId ?? ""}
+                        templateId={entry.assessment_templates.id}
+                        initialScopeType={entry.scope_type}
+                        initialRoleList={entry.role_list}
+                        initialUserIds={entry.user_ids}
+                        members={orgMembers}
+                      />
                     </div>
                     <AssessmentAvailabilityToggle
                       organizationId={organizationId ?? ""}
