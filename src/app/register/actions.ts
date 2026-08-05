@@ -12,15 +12,19 @@ export async function signup(formData: FormData) {
   const jobTitle = String(formData.get("job_title") ?? "");
   const gdprConsent = formData.get("gdpr_consent") === "on";
   const marketingConsent = formData.get("marketing_consent") === "on";
+  const inviteToken = String(formData.get("invite_token") ?? "");
   const next = String(formData.get("next") ?? "/assessment");
 
   const redirectWithError = (message: string) => {
+    const inviteParam = inviteToken ? `&invite=${encodeURIComponent(inviteToken)}` : "";
     redirect(
-      `/register?error=${encodeURIComponent(message)}&next=${encodeURIComponent(next)}`,
+      `/register?error=${encodeURIComponent(message)}&next=${encodeURIComponent(next)}${inviteParam}`,
     );
   };
 
-  if (!firstName || !lastName || !companyName) {
+  // Bei einer Einladung ist die Organisation bereits festgelegt - kein
+  // eigener Firmenname nötig.
+  if (!firstName || !lastName || (!inviteToken && !companyName)) {
     redirectWithError("Bitte fülle alle Pflichtfelder aus.");
   }
   if (!gdprConsent) {
@@ -40,6 +44,7 @@ export async function signup(formData: FormData) {
         job_title: jobTitle,
         gdpr_consent: gdprConsent,
         marketing_consent: marketingConsent,
+        invite_token: inviteToken || undefined,
       },
     },
   });

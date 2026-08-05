@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { signup } from "./actions";
+import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,14 +13,32 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { APP_ROLE_LABELS, type AppRole } from "@/types/roles";
+
+interface InvitationInfo {
+  email: string;
+  role: AppRole;
+}
 
 export default async function RegisterPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; next?: string }>;
+  searchParams: Promise<{ error?: string; next?: string; invite?: string }>;
 }) {
   const params = await searchParams;
   const next = params.next ?? "/assessment";
+
+  let invitation: InvitationInfo | null = null;
+  if (params.invite) {
+    const supabase = await createClient();
+    const { data } = await supabase.rpc("get_invitation_by_token", {
+      p_token: params.invite,
+    });
+    const row = data?.[0];
+    if (row && row.status === "pending") {
+      invitation = { email: row.email, role: row.role as AppRole };
+    }
+  }
 
   return (
     <div className="flex flex-1 items-center justify-center bg-zinc-50 px-4 py-16 dark:bg-black">
@@ -27,8 +46,9 @@ export default async function RegisterPage({
         <CardHeader>
           <CardTitle>Konto erstellen</CardTitle>
           <CardDescription>
-            Mit einem Konto findest du dein Assessment-Ergebnis jederzeit
-            wieder.
+            {invitation
+              ? `Du wurdest als ${APP_ROLE_LABELS[invitation.role]} eingeladen.`
+              : "Mit einem Konto findest du dein Assessment-Ergebnis jederzeit wieder."}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -37,8 +57,18 @@ export default async function RegisterPage({
               <AlertDescription>{params.error}</AlertDescription>
             </Alert>
           )}
+          {params.invite && !invitation && (
+            <Alert variant="destructive">
+              <AlertDescription>
+                Diese Einladung ist ungültig oder bereits verwendet.
+              </AlertDescription>
+            </Alert>
+          )}
           <form action={signup} className="flex flex-col gap-4">
             <input type="hidden" name="next" value={next} />
+            {invitation && (
+              <input type="hidden" name="invite_token" value={params.invite} />
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="first_name">Vorname</Label>
@@ -49,10 +79,12 @@ export default async function RegisterPage({
                 <Input id="last_name" name="last_name" required />
               </div>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="company_name">Unternehmen</Label>
-              <Input id="company_name" name="company_name" required />
-            </div>
+            {!invitation && (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="company_name">Unternehmen</Label>
+                <Input id="company_name" name="company_name" required />
+              </div>
+            )}
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="job_title">Funktion</Label>
               <Input
@@ -69,6 +101,9 @@ export default async function RegisterPage({
                 type="email"
                 required
                 autoComplete="email"
+                defaultValue={invitation?.email}
+                readOnly={Boolean(invitation)}
+                className={invitation ? "bg-muted" : undefined}
               />
             </div>
             <div className="flex flex-col gap-1.5">

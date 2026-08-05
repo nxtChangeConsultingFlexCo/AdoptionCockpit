@@ -2,21 +2,50 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { computeScores, isAnswersComplete } from "@/lib/scoring";
-import type { AssessmentScores } from "@/types/assessment";
+import type { AssessmentQuestion } from "@/data/questions";
+import type {
+  AssessmentScores,
+  CompanySizeBand,
+} from "@/types/assessment";
 
 export interface SaveAssessmentResult {
   data?: { id: string; scores: AssessmentScores; totalScore: number };
   error?: string;
 }
 
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+// Fragen werden serverseitig anhand der templateId nachgeladen statt vom
+// Client übernommen - sonst könnte ein manipulierter Client die
+// Dimension-Zuordnung verändern und damit den Score verfälschen.
+async function loadTemplateQuestions(
+  supabase: SupabaseServerClient,
+  templateId: string,
+): Promise<AssessmentQuestion[] | null> {
+  const { data } = await supabase
+    .from("assessment_templates")
+    .select("questions")
+    .eq("id", templateId)
+    .maybeSingle();
+
+  if (!data) return null;
+  return data.questions as AssessmentQuestion[];
+}
+
 export async function saveAuthenticatedAssessment(
+  templateId: string,
   answers: Record<string, number>,
+  companySizeBand: CompanySizeBand | null,
 ): Promise<SaveAssessmentResult> {
-  if (!isAnswersComplete(answers)) {
+  const supabase = await createClient();
+  const questions = await loadTemplateQuestions(supabase, templateId);
+  if (!questions) {
+    return { error: "Assessment-Vorlage nicht gefunden." };
+  }
+  if (!isAnswersComplete(questions, answers)) {
     return { error: "Bitte beantworte zuerst alle Fragen." };
   }
 
-  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -27,11 +56,13 @@ export async function saveAuthenticatedAssessment(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("first_name, last_name, company_name, job_title, gdpr_consent, marketing_consent")
+    .select(
+      "first_name, last_name, company_name, job_title, gdpr_consent, marketing_consent",
+    )
     .eq("id", user.id)
     .maybeSingle();
 
-  const { scores, totalScore } = computeScores(answers);
+  const { scores, totalScore } = computeScores(questions, answers);
 
   const { data, error } = await supabase
     .from("assessments")
@@ -44,6 +75,8 @@ export async function saveAuthenticatedAssessment(
       job_title: profile?.job_title ?? null,
       gdpr_consent: profile?.gdpr_consent ?? false,
       marketing_consent: profile?.marketing_consent ?? false,
+      template_id: templateId,
+      company_size_band: companySizeBand,
       answers,
       scores,
       total_score: totalScore,
@@ -52,8 +85,8 @@ export async function saveAuthenticatedAssessment(
     .select("id")
     .single();
 
-  if (error) {
-    return { error: error.message };
+  if (error || !data) {
+    return { error: error?.message ?? "Etwas ist schiefgelaufen." };
   }
 
   return { data: { id: data.id, scores, totalScore } };
@@ -70,10 +103,17 @@ export interface GuestContact {
 }
 
 export async function saveGuestAssessment(
+  templateId: string,
   answers: Record<string, number>,
   contact: GuestContact,
+  companySizeBand: CompanySizeBand | null,
 ): Promise<SaveAssessmentResult> {
-  if (!isAnswersComplete(answers)) {
+  const supabase = await createClient();
+  const questions = await loadTemplateQuestions(supabase, templateId);
+  if (!questions) {
+    return { error: "Assessment-Vorlage nicht gefunden." };
+  }
+  if (!isAnswersComplete(questions, answers)) {
     return { error: "Bitte beantworte zuerst alle Fragen." };
   }
   if (!contact.email || !contact.firstName || !contact.lastName || !contact.companyName) {
@@ -83,8 +123,7 @@ export async function saveGuestAssessment(
     return { error: "Bitte stimme der Datenverarbeitung zu, um das Ergebnis zu erhalten." };
   }
 
-  const supabase = await createClient();
-  const { scores, totalScore } = computeScores(answers);
+  const { scores, totalScore } = computeScores(questions, answers);
 
   const { data, error } = await supabase
     .from("assessments")
@@ -96,6 +135,8 @@ export async function saveGuestAssessment(
       job_title: contact.jobTitle || null,
       gdpr_consent: contact.gdprConsent,
       marketing_consent: contact.marketingConsent,
+      template_id: templateId,
+      company_size_band: companySizeBand,
       answers,
       scores,
       total_score: totalScore,
@@ -104,8 +145,8 @@ export async function saveGuestAssessment(
     .select("id")
     .single();
 
-  if (error) {
-    return { error: error.message };
+  if (error || !data) {
+    return { error: error?.message ?? "Etwas ist schiefgelaufen." };
   }
 
   return { data: { id: data.id, scores, totalScore } };

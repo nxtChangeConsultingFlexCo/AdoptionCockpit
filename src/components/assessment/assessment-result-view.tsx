@@ -6,7 +6,11 @@ import Link from "next/link";
 import { RadialScore } from "./radial-score";
 import { DimensionCard } from "./dimension-card";
 import { Button } from "@/components/ui/button";
-import { ASSESSMENT_DIMENSIONS, type AssessmentScores } from "@/types/assessment";
+import {
+  ASSESSMENT_DIMENSIONS,
+  type AssessmentScores,
+  type TemplateBenchmark,
+} from "@/types/assessment";
 import { getReadinessTier, TIER_LABELS, TIER_SUMMARIES } from "@/data/result-copy";
 
 export const RESULT_STORAGE_KEY = "adoptioncockpit_last_result";
@@ -21,12 +25,14 @@ interface AssessmentResultViewProps {
   initialResult: StoredResult | null;
   isAuthenticated: boolean;
   completedAt?: string | null;
+  benchmark?: TemplateBenchmark | null;
 }
 
 export function AssessmentResultView({
   initialResult,
   isAuthenticated,
   completedAt,
+  benchmark,
 }: AssessmentResultViewProps) {
   const router = useRouter();
   const [result, setResult] = useState<StoredResult | null>(initialResult);
@@ -52,7 +58,7 @@ export function AssessmentResultView({
 
   useEffect(() => {
     if (checkedStorage && !result) {
-      router.replace("/assessment");
+      router.replace("/");
     }
   }, [checkedStorage, result, router]);
 
@@ -65,6 +71,7 @@ export function AssessmentResultView({
   }
 
   const tier = getReadinessTier(result.totalScore);
+  const scoreDiff = benchmark ? result.totalScore - benchmark.medianTotalScore : null;
 
   return (
     <div className="flex flex-col gap-14">
@@ -98,6 +105,28 @@ export function AssessmentResultView({
           </p>
         </div>
 
+        {benchmark && scoreDiff !== null && (
+          <div className="flex flex-col items-center gap-1 rounded-lg bg-muted/50 px-5 py-3">
+            <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              Vergleich (gleicher Check)
+            </span>
+            <span className="text-sm text-foreground">
+              Median: <span className="font-medium">{benchmark.medianTotalScore}</span>
+              {" · "}
+              Du liegst{" "}
+              <span className="font-medium">
+                {scoreDiff >= 0
+                  ? `${scoreDiff} Punkte über`
+                  : `${Math.abs(scoreDiff)} Punkte unter`}
+              </span>{" "}
+              dem Durchschnitt
+            </span>
+            <span className="text-xs text-muted-foreground">
+              Basis: {benchmark.sampleSize} registrierte Teilnehmende
+            </span>
+          </div>
+        )}
+
         {completedAt && (
           <p className="text-xs text-muted-foreground">
             Abgeschlossen am{" "}
@@ -116,6 +145,7 @@ export function AssessmentResultView({
             key={dimension}
             dimension={dimension}
             score={result.scores[dimension]}
+            benchmarkScore={benchmark?.medianByDimension[dimension]}
           />
         ))}
       </section>

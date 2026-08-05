@@ -2,8 +2,14 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ASSESSMENT_QUESTIONS, SCALE_LABELS } from "@/data/questions";
-import { ASSESSMENT_DIMENSIONS, ASSESSMENT_DIMENSION_LABELS } from "@/types/assessment";
+import { SCALE_LABELS, type AssessmentQuestion } from "@/data/questions";
+import {
+  ASSESSMENT_DIMENSIONS,
+  ASSESSMENT_DIMENSION_LABELS,
+  COMPANY_SIZE_BANDS,
+  COMPANY_SIZE_BAND_LABELS,
+  type CompanySizeBand,
+} from "@/types/assessment";
 import { isAnswersComplete } from "@/lib/scoring";
 import {
   saveAuthenticatedAssessment,
@@ -12,21 +18,31 @@ import {
 } from "@/app/assessment/actions";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ContactGate } from "./contact-gate";
 import { RESULT_STORAGE_KEY, type StoredResult } from "./assessment-result-view";
 
-const STORAGE_KEY = "adoptioncockpit_assessment_answers";
-
 type Step = "questions" | "gate";
 
 interface AssessmentFlowProps {
+  templateId: string;
+  templateTitle: string;
+  questions: AssessmentQuestion[];
   isAuthenticated: boolean;
 }
 
-export function AssessmentFlow({ isAuthenticated }: AssessmentFlowProps) {
+export function AssessmentFlow({
+  templateId,
+  templateTitle,
+  questions,
+  isAuthenticated,
+}: AssessmentFlowProps) {
   const router = useRouter();
+  const storageKey = `adoptioncockpit_assessment_answers_${templateId}`;
+
   const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [companySizeBand, setCompanySizeBand] = useState<CompanySizeBand | null>(null);
   const [restored, setRestored] = useState(false);
   const [step, setStep] = useState<Step>("questions");
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +51,7 @@ export function AssessmentFlow({ isAuthenticated }: AssessmentFlowProps) {
   // Antworten aus einem vorherigen Durchlauf wiederherstellen (z. B. nach
   // Redirect zu /login oder /register und zurück).
   useEffect(() => {
-    const stored = window.sessionStorage.getItem(STORAGE_KEY);
+    const stored = window.sessionStorage.getItem(storageKey);
     if (stored) {
       try {
         // Einmaliges Wiederherstellen von sessionStorage nach Hydration,
@@ -43,17 +59,18 @@ export function AssessmentFlow({ isAuthenticated }: AssessmentFlowProps) {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setAnswers(JSON.parse(stored) as Record<string, number>);
       } catch {
-        window.sessionStorage.removeItem(STORAGE_KEY);
+        window.sessionStorage.removeItem(storageKey);
       }
     }
     setRestored(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Ist der Nutzer nach dem Wiederherstellen bereits angemeldet und alle
   // Fragen beantwortet, direkt speichern statt erneut das Gate zu zeigen.
   useEffect(() => {
     if (!restored || !isAuthenticated) return;
-    if (isAnswersComplete(answers)) {
+    if (isAnswersComplete(questions, answers)) {
       submitAuthenticated(answers);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -62,12 +79,16 @@ export function AssessmentFlow({ isAuthenticated }: AssessmentFlowProps) {
   function submitAuthenticated(currentAnswers: Record<string, number>) {
     setError(null);
     startTransition(async () => {
-      const res = await saveAuthenticatedAssessment(currentAnswers);
+      const res = await saveAuthenticatedAssessment(
+        templateId,
+        currentAnswers,
+        companySizeBand,
+      );
       if (res.error || !res.data) {
         setError(res.error ?? "Etwas ist schiefgelaufen. Bitte versuche es erneut.");
         return;
       }
-      window.sessionStorage.removeItem(STORAGE_KEY);
+      window.sessionStorage.removeItem(storageKey);
       router.push(`/assessment/result?id=${res.data.id}`);
     });
   }
@@ -77,7 +98,7 @@ export function AssessmentFlow({ isAuthenticated }: AssessmentFlowProps) {
   }
 
   function handleContinue() {
-    if (!isAnswersComplete(answers)) {
+    if (!isAnswersComplete(questions, answers)) {
       setError("Bitte beantworte alle Fragen, bevor du fortfährst.");
       return;
     }
@@ -88,19 +109,24 @@ export function AssessmentFlow({ isAuthenticated }: AssessmentFlowProps) {
       return;
     }
 
-    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(answers));
+    window.sessionStorage.setItem(storageKey, JSON.stringify(answers));
     setStep("gate");
   }
 
   function handleGuestSubmit(contact: GuestContact) {
     setError(null);
     startTransition(async () => {
-      const res = await saveGuestAssessment(answers, contact);
+      const res = await saveGuestAssessment(
+        templateId,
+        answers,
+        contact,
+        companySizeBand,
+      );
       if (res.error || !res.data) {
         setError(res.error ?? "Etwas ist schiefgelaufen. Bitte versuche es erneut.");
         return;
       }
-      window.sessionStorage.removeItem(STORAGE_KEY);
+      window.sessionStorage.removeItem(storageKey);
       // Gäste können ihr Ergebnis nicht per RLS aus der DB nachladen -
       // deshalb wird es für die Ergebnis-Seite kurzzeitig zwischengelegt.
       const storedResult: StoredResult = {
@@ -129,20 +155,42 @@ export function AssessmentFlow({ isAuthenticated }: AssessmentFlowProps) {
     <div className="flex flex-col gap-10">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
-          KI-Readiness-Assessment
+          {templateTitle}
         </h1>
         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          {answeredCount} von {ASSESSMENT_QUESTIONS.length} Fragen beantwortet
+          {answeredCount} von {questions.length} Fragen beantwortet
         </p>
       </div>
 
-      {ASSESSMENT_DIMENSIONS.map((dimension) => (
-        <section key={dimension} className="flex flex-col gap-6">
-          <h2 className="text-lg font-medium text-zinc-950 dark:text-zinc-50">
-            {ASSESSMENT_DIMENSION_LABELS[dimension]}
-          </h2>
-          {ASSESSMENT_QUESTIONS.filter((q) => q.dimension === dimension).map(
-            (question) => (
+      <div className="flex flex-col gap-3">
+        <Label htmlFor="company_size_band">Unternehmensgröße (optional)</Label>
+        <select
+          id="company_size_band"
+          value={companySizeBand ?? ""}
+          onChange={(e) =>
+            setCompanySizeBand((e.target.value || null) as CompanySizeBand | null)
+          }
+          className="flex h-8 w-full max-w-xs rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+        >
+          <option value="">Keine Angabe</option>
+          {COMPANY_SIZE_BANDS.map((band) => (
+            <option key={band} value={band}>
+              {COMPANY_SIZE_BAND_LABELS[band]}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {ASSESSMENT_DIMENSIONS.map((dimension) => {
+        const dimensionQuestions = questions.filter((q) => q.dimension === dimension);
+        if (dimensionQuestions.length === 0) return null;
+
+        return (
+          <section key={dimension} className="flex flex-col gap-6">
+            <h2 className="text-lg font-medium text-zinc-950 dark:text-zinc-50">
+              {ASSESSMENT_DIMENSION_LABELS[dimension]}
+            </h2>
+            {dimensionQuestions.map((question) => (
               <div key={question.id} className="flex flex-col gap-3">
                 <p className="text-sm text-zinc-800 dark:text-zinc-200">
                   {question.text}
@@ -171,10 +219,10 @@ export function AssessmentFlow({ isAuthenticated }: AssessmentFlowProps) {
                   ))}
                 </RadioGroup>
               </div>
-            ),
-          )}
-        </section>
-      ))}
+            ))}
+          </section>
+        );
+      })}
 
       {error && (
         <Alert variant="destructive">

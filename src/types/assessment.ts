@@ -50,6 +50,12 @@ export interface AssessmentRow {
   company_size_band: CompanySizeBand | null;
 }
 
+export interface TemplateBenchmark {
+  sampleSize: number;
+  medianTotalScore: number;
+  medianByDimension: AssessmentScores;
+}
+
 export interface ProfileRow {
   id: string;
   created_at: string;

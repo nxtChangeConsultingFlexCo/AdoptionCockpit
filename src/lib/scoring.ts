@@ -1,23 +1,28 @@
-import { ASSESSMENT_QUESTIONS } from "@/data/questions";
+import type { AssessmentQuestion } from "@/data/questions";
 import {
   ASSESSMENT_DIMENSIONS,
   type AssessmentScores,
 } from "@/types/assessment";
 
-export function isAnswersComplete(answers: Record<string, number>): boolean {
-  return ASSESSMENT_QUESTIONS.every((q) => typeof answers[q.id] === "number");
+export function isAnswersComplete(
+  questions: AssessmentQuestion[],
+  answers: Record<string, number>,
+): boolean {
+  return questions.every((q) => typeof answers[q.id] === "number");
 }
 
-export function computeScores(answers: Record<string, number>): {
+export function computeScores(
+  questions: AssessmentQuestion[],
+  answers: Record<string, number>,
+): {
   scores: AssessmentScores;
   totalScore: number;
 } {
   const scores = {} as AssessmentScores;
 
   for (const dimension of ASSESSMENT_DIMENSIONS) {
-    const values = ASSESSMENT_QUESTIONS.filter(
-      (q) => q.dimension === dimension,
-    )
+    const values = questions
+      .filter((q) => q.dimension === dimension)
       .map((q) => answers[q.id])
       .filter((value): value is number => typeof value === "number");
 

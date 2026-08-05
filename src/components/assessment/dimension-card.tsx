@@ -5,9 +5,10 @@ import { DIMENSION_ASSESSMENTS, getReadinessTier } from "@/data/result-copy";
 interface DimensionCardProps {
   dimension: AssessmentDimension;
   score: number;
+  benchmarkScore?: number;
 }
 
-export function DimensionCard({ dimension, score }: DimensionCardProps) {
+export function DimensionCard({ dimension, score, benchmarkScore }: DimensionCardProps) {
   const tier = getReadinessTier(score);
 
   return (
@@ -21,15 +22,27 @@ export function DimensionCard({ dimension, score }: DimensionCardProps) {
         </span>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+        <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-muted">
           <div
             className="h-full rounded-full bg-primary transition-[width] duration-700 ease-out"
             style={{ width: `${score}%` }}
           />
+          {typeof benchmarkScore === "number" && (
+            <div
+              className="absolute inset-y-0 w-0.5 bg-foreground/50"
+              style={{ left: `${benchmarkScore}%` }}
+              title={`Median: ${benchmarkScore}`}
+            />
+          )}
         </div>
         <p className="text-sm leading-relaxed text-muted-foreground">
           {DIMENSION_ASSESSMENTS[dimension][tier]}
         </p>
+        {typeof benchmarkScore === "number" && (
+          <p className="text-xs text-muted-foreground">
+            Vergleich (Median): {benchmarkScore}
+          </p>
+        )}
       </CardContent>
     </Card>
   );

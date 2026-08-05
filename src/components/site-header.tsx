@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 export async function SiteHeader() {
   const user = await getCurrentUser();
   const canManageUsers = user?.role === "client_admin" || user?.role === "god";
+  const isGod = user?.role === "god";
 
   return (
     <header className="border-b border-zinc-200 dark:border-zinc-800">
@@ -44,6 +45,22 @@ export async function SiteHeader() {
                 >
                   Nutzer
                 </Link>
+              )}
+              {isGod && (
+                <>
+                  <Link
+                    href="/settings/templates"
+                    className="text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
+                  >
+                    Templates
+                  </Link>
+                  <Link
+                    href="/settings/invitations"
+                    className="text-zinc-600 transition-colors hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
+                  >
+                    Einladungen
+                  </Link>
+                </>
               )}
             </nav>
             <span className="hidden text-zinc-600 sm:inline dark:text-zinc-400">
