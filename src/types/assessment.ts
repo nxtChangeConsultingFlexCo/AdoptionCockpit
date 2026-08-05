@@ -69,4 +69,7 @@ export interface ProfileRow {
   organization_id: string | null;
   gdpr_consent: boolean;
   marketing_consent: boolean;
+  is_blocked: boolean;
+  blocked_at: string | null;
+  blocked_reason: string | null;
 }

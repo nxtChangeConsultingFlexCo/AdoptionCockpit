@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import {
   toggleUserRole,
   updatePlatformRole,
+  setUserBlocked,
 } from "@/app/settings/users/actions";
 import { startImpersonation } from "@/app/impersonate/actions";
 import { APP_ROLE_LABELS, type AppRole } from "@/types/roles";
@@ -33,6 +34,7 @@ export interface UserListItem {
   role: AppRole;
   organization_id: string | null;
   created_at: string;
+  is_blocked: boolean;
   organizations: { name: string } | null;
   profile_roles: { role: AppRole }[] | null;
 }
@@ -114,8 +116,11 @@ function UserRow({
   const [platformRole, setPlatformRole] = useState(user.role);
   const [error, setError] = useState<string | null>(null);
   const [impersonateError, setImpersonateError] = useState<string | null>(null);
+  const [isBlocked, setIsBlocked] = useState(user.is_blocked);
+  const [blockError, setBlockError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isImpersonating, startImpersonateTransition] = useTransition();
+  const [isBlockPending, startBlockTransition] = useTransition();
 
   function handleImpersonate() {
     setImpersonateError(null);
@@ -123,6 +128,33 @@ function UserRow({
       const res = await startImpersonation(user.id);
       if (res?.error) {
         setImpersonateError(res.error);
+      }
+    });
+  }
+
+  function handleToggleBlocked() {
+    const next = !isBlocked;
+    // Bei client_admin (nicht god) wird eine Rückfrage verlangt, wenn
+    // die Zielperson selbst client_admin ist - siehe Anforderung.
+    if (
+      next &&
+      !isGod &&
+      (user.profile_roles ?? []).some((r) => r.role === "client_admin")
+    ) {
+      const confirmed = window.confirm(
+        `${fullName} ist selbst Organisations-Admin. Wirklich sperren?`,
+      );
+      if (!confirmed) return;
+    }
+
+    setBlockError(null);
+    const previous = isBlocked;
+    setIsBlocked(next);
+    startBlockTransition(async () => {
+      const res = await setUserBlocked(user.id, next);
+      if (res.error) {
+        setIsBlocked(previous);
+        setBlockError(res.error);
       }
     });
   }
@@ -164,7 +196,16 @@ function UserRow({
 
   return (
     <tr className="border-b border-border align-top last:border-0">
-      <td className="px-4 py-3 text-foreground">{fullName}</td>
+      <td className="px-4 py-3 text-foreground">
+        <div className="flex items-center gap-2">
+          {fullName}
+          {isBlocked && (
+            <span className="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
+              Gesperrt
+            </span>
+          )}
+        </div>
+      </td>
       <td className="px-4 py-3 text-muted-foreground">{user.email ?? "—"}</td>
       <td className="px-4 py-3 text-muted-foreground">{user.job_title ?? "—"}</td>
       {showOrg && (
@@ -226,7 +267,7 @@ function UserRow({
       )}
       <td className="px-4 py-3">
         {!isOwnRow && (
-          <>
+          <div className="flex flex-col items-start gap-1.5">
             <Button
               variant="outline"
               size="sm"
@@ -236,9 +277,20 @@ function UserRow({
               Als diesen User ansehen
             </Button>
             {impersonateError && (
-              <p className="mt-1 text-xs text-destructive">{impersonateError}</p>
+              <p className="text-xs text-destructive">{impersonateError}</p>
             )}
-          </>
+            <Button
+              variant={isBlocked ? "outline" : "destructive"}
+              size="sm"
+              disabled={isBlockPending}
+              onClick={handleToggleBlocked}
+            >
+              {isBlocked ? "Entsperren" : "Sperren"}
+            </Button>
+            {blockError && (
+              <p className="text-xs text-destructive">{blockError}</p>
+            )}
+          </div>
         )}
       </td>
     </tr>

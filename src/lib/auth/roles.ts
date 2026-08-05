@@ -48,6 +48,39 @@ async function resolveActiveImpersonation(
   return data.target_user_id;
 }
 
+// Gesperrte Accounts/Organisationen dürfen keine aktive Session behalten
+// - unabhängig von Mimik wird hier immer die ECHTE (Session-)Identität
+// geprüft, nicht die per Mimik überlagerte. Bei Treffer wird sofort
+// abgemeldet, damit auch schon bestehende Sessions (Sperrung passiert
+// während jemand eingeloggt ist) nicht weiterlaufen.
+async function enforceNotBlocked(
+  supabase: SupabaseServerClient,
+  realUserId: string,
+): Promise<boolean> {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_blocked, organization_id")
+    .eq("id", realUserId)
+    .maybeSingle();
+
+  let blocked = profile?.is_blocked ?? false;
+
+  if (!blocked && profile?.organization_id) {
+    const { data: org } = await supabase
+      .from("organizations")
+      .select("is_blocked")
+      .eq("id", profile.organization_id)
+      .maybeSingle();
+    blocked = org?.is_blocked ?? false;
+  }
+
+  if (blocked) {
+    await supabase.auth.signOut();
+  }
+
+  return blocked;
+}
+
 export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
   const supabase = await createClient();
   const {
@@ -55,6 +88,10 @@ export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
   } = await supabase.auth.getUser();
 
   if (!user) return null;
+
+  if (await enforceNotBlocked(supabase, user.id)) {
+    return null;
+  }
 
   const targetUserId = await resolveActiveImpersonation(supabase, user.id);
   const effectiveUserId = targetUserId ?? user.id;

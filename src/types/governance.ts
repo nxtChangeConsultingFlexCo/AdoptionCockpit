@@ -2,6 +2,7 @@ export interface OrganizationRow {
   id: string;
   created_at: string;
   name: string;
+  is_blocked: boolean;
 }
 
 export const CHANGE_REQUEST_STATUSES = [

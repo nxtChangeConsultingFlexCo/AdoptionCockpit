@@ -23,7 +23,7 @@ export default async function AdminUsersPage() {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, first_name, last_name, email, job_title, role, organization_id, created_at, organizations(name), profile_roles(role)",
+      "id, first_name, last_name, email, job_title, role, organization_id, created_at, is_blocked, organizations(name), profile_roles(role)",
     )
     .order("created_at", { ascending: true });
 

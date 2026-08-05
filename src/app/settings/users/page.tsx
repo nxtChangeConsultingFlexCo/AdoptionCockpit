@@ -24,7 +24,7 @@ export default async function UserManagementPage() {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, first_name, last_name, email, job_title, role, organization_id, created_at, organizations(name), profile_roles(role)",
+      "id, first_name, last_name, email, job_title, role, organization_id, created_at, is_blocked, organizations(name), profile_roles(role)",
     )
     .eq("organization_id", currentUser.organizationId ?? "")
     // god ist organisationsunabhängig und käme hier ohnehin nie vor.

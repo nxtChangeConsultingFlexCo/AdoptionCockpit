@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/roles";
 import type { AppRole } from "@/types/roles";
 
 export interface ToggleUserRoleResult {
@@ -78,5 +79,46 @@ export async function updatePlatformRole(
   }
 
   revalidatePath("/settings/users");
+  return {};
+}
+
+export interface SetUserBlockedResult {
+  error?: string;
+}
+
+// RLS ("God can update any profile" / "Client admins can update
+// profiles in their organization") setzt die eigentliche Grenze; der
+// guard_self_block-Trigger verhindert unabhängig davon, dass sich
+// irgendwer selbst sperrt. Hier kommt nur die freundliche
+// Fehlermeldung dazu, bevor überhaupt ein Request rausgeht.
+export async function setUserBlocked(
+  userId: string,
+  isBlocked: boolean,
+  reason?: string,
+): Promise<SetUserBlockedResult> {
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return { error: "Nicht angemeldet." };
+  if (userId === currentUser.id) {
+    return { error: "Du kannst dich nicht selbst sperren." };
+  }
+
+  const supabase = await createClient();
+  const { error, data } = await supabase
+    .from("profiles")
+    .update({
+      is_blocked: isBlocked,
+      blocked_at: isBlocked ? new Date().toISOString() : null,
+      blocked_reason: isBlocked ? (reason?.trim() || null) : null,
+    })
+    .eq("id", userId)
+    .select("id");
+
+  if (error) return { error: error.message };
+  if (!data || data.length === 0) {
+    return { error: "Keine Berechtigung, diesen Nutzer zu sperren." };
+  }
+
+  revalidatePath("/settings/users");
+  revalidatePath("/admin/users");
   return {};
 }

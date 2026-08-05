@@ -45,6 +45,9 @@ export async function SiteHeader() {
                 <Link href="/admin/users" className={navLinkClassName}>
                   Nutzer
                 </Link>
+                <Link href="/admin/organizations" className={navLinkClassName}>
+                  Organisationen
+                </Link>
                 <Link href="/settings/templates" className={navLinkClassName}>
                   Templates
                 </Link>
