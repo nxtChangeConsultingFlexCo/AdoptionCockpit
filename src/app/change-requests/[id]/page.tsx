@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/change-requests/status-badge";
+import { BoardActions } from "@/components/change-requests/board-actions";
 import {
   CHANGE_REQUEST_PRIORITY_LABELS,
   type ChangeRequestRow,
@@ -30,7 +31,7 @@ export default async function ChangeRequestDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireUser("/change-requests");
+  const user = await requireUser("/change-requests");
   const { id } = await params;
   const supabase = await createClient();
 
@@ -155,6 +156,12 @@ export default async function ChangeRequestDetailPage({
                 </p>
               </div>
             )}
+
+            <BoardActions
+              requestId={changeRequest.id}
+              status={changeRequest.status}
+              role={user.role}
+            />
           </CardContent>
         </Card>
       </div>

@@ -1,8 +1,13 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/roles";
+
+export interface ChangeRequestActionResult {
+  error?: string;
+}
 
 export async function createChangeRequest(formData: FormData) {
   const user = await requireUser("/change-requests/new");
@@ -44,4 +49,80 @@ export async function createChangeRequest(formData: FormData) {
   }
 
   redirect(`/change-requests/${data.id}`);
+}
+
+// Cluster Lead: übernimmt eine eingereichte Anfrage und leitet sie an
+// das Change Advisory Board weiter. RLS erlaubt jedem "leader" der
+// Organisation diese Aktion (kein Vor-Zuweisen nötig, siehe 0010).
+export async function forwardToCab(
+  requestId: string,
+): Promise<ChangeRequestActionResult> {
+  const user = await requireUser(`/change-requests/${requestId}`);
+  const supabase = await createClient();
+
+  const { error, data } = await supabase
+    .from("change_requests")
+    .update({ status: "cab_review", assigned_leader: user.id })
+    .eq("id", requestId)
+    .select("id");
+
+  if (error) return { error: error.message };
+  if (!data || data.length === 0) {
+    return { error: "Keine Berechtigung für diese Aktion." };
+  }
+
+  revalidatePath(`/change-requests/${requestId}`);
+  return {};
+}
+
+// CAB: qualifiziert (-> geht in den IT-Backlog) oder lehnt eine Anfrage
+// ab, jeweils mit optionaler Begründung.
+export async function decideCabReview(
+  requestId: string,
+  decision: "qualified" | "rejected",
+  note: string,
+): Promise<ChangeRequestActionResult> {
+  await requireUser(`/change-requests/${requestId}`);
+  const supabase = await createClient();
+
+  const nextStatus = decision === "qualified" ? "it_backlog" : "rejected";
+
+  const { error, data } = await supabase
+    .from("change_requests")
+    .update({ status: nextStatus, cab_decision_note: note || null })
+    .eq("id", requestId)
+    .select("id");
+
+  if (error) return { error: error.message };
+  if (!data || data.length === 0) {
+    return { error: "Keine Berechtigung für diese Aktion." };
+  }
+
+  revalidatePath(`/change-requests/${requestId}`);
+  return {};
+}
+
+// IT Board: nimmt eine Anfrage aus dem Backlog in Umsetzung oder
+// schließt sie ab, jeweils mit optionalem Feedback an den Cluster Lead.
+export async function updateItBoardStatus(
+  requestId: string,
+  nextStatus: "in_implementation" | "done",
+  feedback: string,
+): Promise<ChangeRequestActionResult> {
+  await requireUser(`/change-requests/${requestId}`);
+  const supabase = await createClient();
+
+  const { error, data } = await supabase
+    .from("change_requests")
+    .update({ status: nextStatus, it_feedback: feedback || null })
+    .eq("id", requestId)
+    .select("id");
+
+  if (error) return { error: error.message };
+  if (!data || data.length === 0) {
+    return { error: "Keine Berechtigung für diese Aktion." };
+  }
+
+  revalidatePath(`/change-requests/${requestId}`);
+  return {};
 }
