@@ -51,9 +51,17 @@ export async function SiteHeader() {
                   Ideen &amp; Anfragen
                 </Link>
                 {canManageUsers && (
-                  <Link href="/settings/users" className={navLinkClassName}>
-                    Nutzer
-                  </Link>
+                  <>
+                    <Link href="/settings/users" className={navLinkClassName}>
+                      Nutzer
+                    </Link>
+                    <Link
+                      href="/settings/assessments"
+                      className={navLinkClassName}
+                    >
+                      Assessments verwalten
+                    </Link>
+                  </>
                 )}
               </nav>
             )}
