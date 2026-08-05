@@ -1,78 +1,119 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/auth/roles";
-import { ROADMAP_PHASES } from "@/data/roadmap-phases";
+import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/change-requests/status-badge";
+import type { ChangeRequestRow } from "@/types/governance";
+
+const NO_PHASE_LABEL = "Noch nicht eingeplant";
+
+function formatDate(value: string | null): string | null {
+  if (!value) return null;
+  return new Date(value).toLocaleDateString("de-DE", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
 
 export default async function RoadmapPage() {
-  await requireUser("/roadmap");
+  const user = await requireUser("/roadmap");
+  const supabase = await createClient();
+
+  // RLS ("Org members can view relevant change requests" /
+  // "God can view all change requests") beschränkt das Ergebnis bereits
+  // korrekt: Board-Rollen sehen die ganze Org, andere nur eigene bzw.
+  // ihnen zugewiesene Anfragen.
+  const { data } = await supabase
+    .from("change_requests")
+    .select("*")
+    .order("target_date", { ascending: true, nullsFirst: false });
+
+  const requests = (data ?? []) as ChangeRequestRow[];
+
+  const phases = new Map<string, ChangeRequestRow[]>();
+  for (const request of requests) {
+    const key = request.phase ?? NO_PHASE_LABEL;
+    const group = phases.get(key) ?? [];
+    group.push(request);
+    phases.set(key, group);
+  }
+
+  function earliestTargetDate(group: ChangeRequestRow[]): string {
+    const dates = group.map((r) => r.target_date).filter(Boolean) as string[];
+    return dates.length > 0 ? dates.sort()[0]! : "9999-99-99";
+  }
+
+  const orderedPhases = Array.from(phases.entries())
+    .filter(([phase]) => phase !== NO_PHASE_LABEL)
+    .sort((a, b) => earliestTargetDate(a[1]).localeCompare(earliestTargetDate(b[1])));
+
+  if (phases.has(NO_PHASE_LABEL)) {
+    orderedPhases.push([NO_PHASE_LABEL, phases.get(NO_PHASE_LABEL)!]);
+  }
+
+  const canCreate = Boolean(user.organizationId);
 
   return (
     <div className="flex flex-1 justify-center bg-zinc-50 px-4 py-12 dark:bg-black">
       <div className="w-full max-w-3xl">
-        <div className="flex flex-col gap-2 text-center">
-          <span className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
-            Deine Roadmap
-          </span>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-            Von der Standortbestimmung zur Umsetzung
-          </h1>
-          <p className="mx-auto max-w-xl text-base leading-relaxed text-muted-foreground">
-            Sobald dein persönlicher Deep-Dive abgeschlossen ist, erscheinen
-            hier deine priorisierten Maßnahmen. So ist der Weg grundsätzlich
-            aufgebaut:
-          </p>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <span className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
+              Roadmap
+            </span>
+            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
+              Eure Change-Roadmap
+            </h1>
+          </div>
+          {canCreate && (
+            <Button render={<Link href="/change-requests/new" />}>
+              Neue Idee einreichen
+            </Button>
+          )}
         </div>
 
-        <ol className="mt-14 flex flex-col gap-10">
-          {ROADMAP_PHASES.map((phase, index) => (
-            <li key={phase.id} className="relative flex gap-6">
-              <div className="flex flex-col items-center">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-card text-sm font-semibold text-foreground">
-                  {index + 1}
-                </span>
-                {index < ROADMAP_PHASES.length - 1 && (
-                  <span className="mt-2 w-px flex-1 bg-border" />
-                )}
-              </div>
-              <div className="flex flex-1 flex-col gap-3 pb-2">
-                <div className="flex flex-wrap items-center gap-3">
-                  <h2 className="text-lg font-semibold text-foreground">
-                    {phase.title}
-                  </h2>
-                  <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-                    {phase.timeframe}
-                  </span>
+        {requests.length === 0 ? (
+          <div className="mt-10 rounded-2xl border border-dashed border-border px-6 py-16 text-center">
+            <p className="text-sm text-muted-foreground">
+              Noch keine Change Requests vorhanden.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-10 flex flex-col gap-10">
+            {orderedPhases.map(([phase, items]) => (
+              <section key={phase} className="flex flex-col gap-4">
+                <h2 className="text-lg font-semibold text-foreground">
+                  {phase}
+                </h2>
+                <div className="flex flex-col gap-3">
+                  {items.map((request) => {
+                    const targetDate = formatDate(request.target_date);
+                    return (
+                      <Link
+                        key={request.id}
+                        href={`/change-requests/${request.id}`}
+                        className="flex flex-col gap-2 rounded-xl border border-border bg-card px-5 py-4 transition-colors hover:border-primary/40 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div className="flex flex-col gap-1">
+                          <span className="font-medium text-foreground">
+                            {request.title}
+                          </span>
+                          {targetDate && (
+                            <span className="text-xs text-muted-foreground">
+                              Zieldatum: {targetDate}
+                            </span>
+                          )}
+                        </div>
+                        <StatusBadge status={request.status} />
+                      </Link>
+                    );
+                  })}
                 </div>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {phase.description}
-                </p>
-                <ul className="flex flex-col gap-1.5">
-                  {phase.focus.map((item) => (
-                    <li
-                      key={item}
-                      className="flex items-start gap-2 text-sm text-muted-foreground"
-                    >
-                      <span className="mt-2 size-1 shrink-0 rounded-full bg-primary" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </li>
-          ))}
-        </ol>
-
-        <div className="mt-14 flex flex-col items-center gap-4 rounded-2xl border border-border bg-card px-6 py-10 text-center">
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">
-            Bereit für deinen Deep-Dive?
-          </h2>
-          <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-            In einem persönlichen Gespräch priorisieren wir diese Phasen
-            konkret für dein Unternehmen.
-          </p>
-          <Button size="lg" disabled>
-            Deep-Dive anfragen — bald verfügbar
-          </Button>
-        </div>
+              </section>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

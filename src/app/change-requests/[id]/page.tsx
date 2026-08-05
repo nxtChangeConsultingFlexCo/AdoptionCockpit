@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/change-requests/status-badge";
 import { BoardActions } from "@/components/change-requests/board-actions";
+import { RoadmapFieldsForm } from "@/components/change-requests/roadmap-fields-form";
 import {
   CHANGE_REQUEST_PRIORITY_LABELS,
   type ChangeRequestRow,
@@ -133,6 +134,27 @@ export default async function ChangeRequestDetailPage({
                   )}
                 </dd>
               </div>
+              <div>
+                <dt className="text-xs text-muted-foreground uppercase">
+                  Roadmap-Phase
+                </dt>
+                <dd className="mt-0.5 text-foreground">
+                  {changeRequest.phase ?? "Noch nicht eingeplant"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground uppercase">
+                  Zieldatum
+                </dt>
+                <dd className="mt-0.5 text-foreground">
+                  {changeRequest.target_date
+                    ? new Date(changeRequest.target_date).toLocaleDateString(
+                        "de-DE",
+                        { day: "2-digit", month: "long", year: "numeric" },
+                      )
+                    : "—"}
+                </dd>
+              </div>
             </dl>
 
             {changeRequest.cab_decision_note && (
@@ -163,6 +185,16 @@ export default async function ChangeRequestDetailPage({
               orgRoles={user.orgRoles}
               isGod={user.role === "god"}
             />
+
+            {(user.role === "god" ||
+              user.orgRoles.includes("ca_board") ||
+              user.orgRoles.includes("client_admin")) && (
+              <RoadmapFieldsForm
+                requestId={changeRequest.id}
+                initialPhase={changeRequest.phase}
+                initialTargetDate={changeRequest.target_date}
+              />
+            )}
           </CardContent>
         </Card>
       </div>

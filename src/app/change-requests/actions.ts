@@ -102,6 +102,43 @@ export async function decideCabReview(
   return {};
 }
 
+// CA Board/client_admin: planen eine qualifizierte Anfrage für die
+// Roadmap ein (Phase + optionales Zieldatum). RLS erlaubt das
+// Schreiben technisch auch anderen Board-Rollen mit Update-Zugriff auf
+// die Anfrage - die Einschränkung auf CA Board/client_admin/god
+// erfolgt bewusst hier in der Anwendung, siehe Migration 0026.
+export async function setRoadmapFields(
+  requestId: string,
+  phase: string,
+  targetDate: string,
+): Promise<ChangeRequestActionResult> {
+  const user = await requireUser(`/change-requests/${requestId}`);
+  const canSetRoadmap =
+    user.role === "god" ||
+    user.orgRoles.includes("ca_board") ||
+    user.orgRoles.includes("client_admin");
+
+  if (!canSetRoadmap) {
+    return { error: "Keine Berechtigung, die Roadmap-Planung zu ändern." };
+  }
+
+  const supabase = await createClient();
+  const { error, data } = await supabase
+    .from("change_requests")
+    .update({ phase: phase.trim() || null, target_date: targetDate || null })
+    .eq("id", requestId)
+    .select("id");
+
+  if (error) return { error: error.message };
+  if (!data || data.length === 0) {
+    return { error: "Keine Berechtigung für diese Aktion." };
+  }
+
+  revalidatePath(`/change-requests/${requestId}`);
+  revalidatePath("/roadmap");
+  return {};
+}
+
 // IT Board: nimmt eine Anfrage aus dem Backlog in Umsetzung oder
 // schließt sie ab, jeweils mit optionalem Feedback an den Cluster Lead.
 export async function updateItBoardStatus(

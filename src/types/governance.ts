@@ -47,6 +47,8 @@ export interface ChangeRequestRow {
   cab_decision_note: string | null;
   it_feedback: string | null;
   priority: ChangeRequestPriority | null;
+  phase: string | null;
+  target_date: string | null;
   created_at: string;
   updated_at: string;
 }
