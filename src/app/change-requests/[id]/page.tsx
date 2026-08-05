@@ -7,10 +7,26 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/change-requests/status-badge";
 import { BoardActions } from "@/components/change-requests/board-actions";
 import { RoadmapFieldsForm } from "@/components/change-requests/roadmap-fields-form";
+import { EditRequestForm } from "@/components/change-requests/edit-request-form";
+import {
+  ChangeHistory,
+  type ChangeHistoryEvent,
+} from "@/components/change-requests/change-history";
 import {
   CHANGE_REQUEST_PRIORITY_LABELS,
   type ChangeRequestRow,
+  type ChangeRequestStatus,
 } from "@/types/governance";
+
+const EARLY_STAGE_STATUSES: ChangeRequestStatus[] = ["draft", "submitted"];
+const EDITABLE_STATUSES: ChangeRequestStatus[] = [
+  "draft",
+  "submitted",
+  "cab_review",
+  "qualified",
+  "it_backlog",
+  "in_implementation",
+];
 
 interface MiniProfile {
   id: string;
@@ -63,6 +79,46 @@ export default async function ChangeRequestDetailPage({
   const requester = profiles?.find((p) => p.id === changeRequest.requested_by);
   const leader = profiles?.find((p) => p.id === changeRequest.assigned_leader);
 
+  const isEarlyStage = EARLY_STAGE_STATUSES.includes(changeRequest.status);
+  const canEdit =
+    EDITABLE_STATUSES.includes(changeRequest.status) &&
+    (isEarlyStage
+      ? user.role === "god" ||
+        changeRequest.requested_by === user.id ||
+        changeRequest.assigned_leader === user.id ||
+        user.orgRoles.includes("leader")
+      : user.role === "god" ||
+        user.orgRoles.includes("ca_board") ||
+        user.orgRoles.includes("client_admin"));
+
+  const { data: eventRows } = await supabase
+    .from("change_request_events")
+    .select("id, changed_at, field, old_value, new_value, changed_by")
+    .eq("change_request_id", changeRequest.id)
+    .order("changed_at", { ascending: false });
+
+  const changedByIds = Array.from(
+    new Set((eventRows ?? []).map((e) => e.changed_by).filter((v): v is string => Boolean(v))),
+  );
+  const { data: eventProfiles } =
+    changedByIds.length > 0
+      ? await supabase
+          .from("profiles")
+          .select("id, first_name, last_name, email")
+          .in("id", changedByIds)
+      : { data: [] as MiniProfile[] };
+
+  const eventProfileMap = new Map((eventProfiles ?? []).map((p) => [p.id, p]));
+  const historyEvents: ChangeHistoryEvent[] = (eventRows ?? []).map((e) => ({
+    id: e.id,
+    changed_at: e.changed_at,
+    field: e.field,
+    old_value: e.old_value,
+    new_value: e.new_value,
+    changed_by_name:
+      formatName(eventProfileMap.get(e.changed_by ?? "")) ?? "Unbekannt",
+  }));
+
   return (
     <div className="flex flex-1 justify-center bg-zinc-50 px-4 py-12 dark:bg-black">
       <div className="flex w-full max-w-2xl flex-col gap-6">
@@ -84,6 +140,15 @@ export default async function ChangeRequestDetailPage({
             <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground">
               {changeRequest.description}
             </p>
+
+            {canEdit && (
+              <EditRequestForm
+                requestId={changeRequest.id}
+                initialTitle={changeRequest.title}
+                initialDescription={changeRequest.description}
+                initialPriority={changeRequest.priority}
+              />
+            )}
 
             <dl className="grid grid-cols-2 gap-4 border-t border-border pt-4 text-sm sm:grid-cols-3">
               <div>
@@ -195,6 +260,13 @@ export default async function ChangeRequestDetailPage({
                 initialTargetDate={changeRequest.target_date}
               />
             )}
+
+            <div className="flex flex-col gap-3 border-t border-border pt-4">
+              <p className="text-sm font-medium text-foreground">
+                Änderungsverlauf
+              </p>
+              <ChangeHistory events={historyEvents} />
+            </div>
           </CardContent>
         </Card>
       </div>
