@@ -6,6 +6,7 @@ import Link from "next/link";
 import { RadialScore } from "./radial-score";
 import { DimensionCard } from "./dimension-card";
 import { SectionScaleCard } from "./section-scale-card";
+import { RadarChart } from "./radar-chart";
 import { Button } from "@/components/ui/button";
 import type {
   AssessmentScores,
@@ -18,7 +19,11 @@ import {
   SCORE_TIER_LABELS,
   SECTION_SUM_TIER_LABELS,
 } from "@/data/result-copy";
-import type { ScoringMode, TemplateRecommendations } from "@/types/template";
+import type {
+  ResultVisualization,
+  ScoringMode,
+  TemplateRecommendations,
+} from "@/types/template";
 
 export const RESULT_STORAGE_KEY = "adoptioncockpit_last_result";
 
@@ -30,6 +35,7 @@ export interface StoredResult {
 
 export interface ResultTemplateConfig {
   scoringMode: ScoringMode;
+  resultVisualization: ResultVisualization;
   scaleMin: number;
   scaleMax: number;
   sections: TemplateSection[];
@@ -157,41 +163,64 @@ export function AssessmentResultView({
     const totalPercent =
       totalRange > 0 ? ((result.totalScore - totalMin) / totalRange) * 100 : 0;
     const clampedTotalPercent = Math.min(100, Math.max(0, totalPercent));
+    const isRadar = templateConfig.resultVisualization === "radar";
+
+    const radarAxes = sections.map((section) => ({
+      key: section.key,
+      label: section.label,
+      value: result.scores[section.key] ?? 0,
+      max:
+        (templateConfig.questionCountBySection[section.key] ?? 0) *
+        templateConfig.scaleMax,
+    }));
 
     return (
       <div className="flex flex-col gap-14">
         <section className="flex flex-col items-center gap-6 text-center">
           {header}
 
-          <div className="flex w-full max-w-md flex-col items-center gap-3">
-            <span className="text-5xl font-semibold tabular-nums text-foreground">
-              {result.totalScore}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              von {totalMin}–{totalMax} Punkten
-            </span>
-            <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-muted">
-              <div
-                className="absolute inset-y-0 left-0 rounded-full bg-primary transition-[width] duration-700 ease-out"
-                style={{ width: `${clampedTotalPercent}%` }}
-              />
+          {isRadar ? (
+            <div className="flex w-full max-w-sm flex-col items-center gap-4">
+              <RadarChart axes={radarAxes} />
+              {overallRecommendation && (
+                <p className="max-w-xl text-base leading-relaxed text-muted-foreground">
+                  {overallRecommendation}
+                </p>
+              )}
             </div>
-            <div className="flex w-full items-center justify-between text-xs text-muted-foreground">
-              <span>Geringer Bedarf</span>
-              <span>Hoher Bedarf</span>
-            </div>
-          </div>
+          ) : (
+            <>
+              <div className="flex w-full max-w-md flex-col items-center gap-3">
+                <span className="text-5xl font-semibold tabular-nums text-foreground">
+                  {result.totalScore}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  von {totalMin}–{totalMax} Punkten
+                </span>
+                <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="absolute inset-y-0 left-0 rounded-full bg-primary transition-[width] duration-700 ease-out"
+                    style={{ width: `${clampedTotalPercent}%` }}
+                  />
+                </div>
+                <div className="flex w-full items-center justify-between text-xs text-muted-foreground">
+                  <span>Geringer Bedarf</span>
+                  <span>Hoher Bedarf</span>
+                </div>
+              </div>
 
-          <div className="flex flex-col items-center gap-3">
-            <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
-              {SECTION_SUM_TIER_LABELS[totalTier]}
-            </span>
-            {overallRecommendation && (
-              <p className="max-w-xl text-base leading-relaxed text-muted-foreground">
-                {overallRecommendation}
-              </p>
-            )}
-          </div>
+              <div className="flex flex-col items-center gap-3">
+                <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+                  {SECTION_SUM_TIER_LABELS[totalTier]}
+                </span>
+                {overallRecommendation && (
+                  <p className="max-w-xl text-base leading-relaxed text-muted-foreground">
+                    {overallRecommendation}
+                  </p>
+                )}
+              </div>
+            </>
+          )}
 
           {completedAtNote}
         </section>

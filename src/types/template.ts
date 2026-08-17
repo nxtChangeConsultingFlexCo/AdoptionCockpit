@@ -8,6 +8,12 @@ import type { TemplateSection } from "./assessment";
 // (2 Tiers low/high, Split am Mittelpunkt des Bereichs).
 export type ScoringMode = "dimension_average" | "section_sum";
 
+// bars = SectionScaleCard-Balken je Sektion (Standard, siehe Migration 0037).
+// radar = zusätzliches Spinnennetz-Diagramm als Ergebnis-Hero (Migration
+// 0038) - nur relevant bei scoring_mode = section_sum, sinnvoll ab ~3
+// Sektionen (z. B. ein persönliches Skill-Profil über mehrere Achsen).
+export type ResultVisualization = "bars" | "radar";
+
 // Tier-Keys hängen vom scoring_mode ab (siehe SCORE_TIERS / SECTION_SUM_TIERS
 // in @/data/result-copy) - deshalb hier bewusst generisch statt eines
 // festen low/medium/high-Interfaces.
@@ -24,6 +30,7 @@ export interface AssessmentTemplateRow {
   scoring_mode: ScoringMode;
   scale_min: number;
   scale_max: number;
+  result_visualization: ResultVisualization;
   sections: TemplateSection[];
   questions: AssessmentQuestion[];
   recommendations: TemplateRecommendations;

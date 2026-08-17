@@ -50,14 +50,22 @@ export default async function AssessmentResultPage({
   if (effectiveTemplateId) {
     const { data: templateRow } = await supabase
       .from("assessment_templates")
-      .select("recommendations, scoring_mode, scale_min, scale_max, sections, questions")
+      .select(
+        "recommendations, scoring_mode, scale_min, scale_max, result_visualization, sections, questions",
+      )
       .eq("id", effectiveTemplateId)
       .maybeSingle();
 
     if (templateRow) {
       const template = templateRow as Pick<
         AssessmentTemplateRow,
-        "recommendations" | "scoring_mode" | "scale_min" | "scale_max" | "sections" | "questions"
+        | "recommendations"
+        | "scoring_mode"
+        | "scale_min"
+        | "scale_max"
+        | "result_visualization"
+        | "sections"
+        | "questions"
       >;
 
       if (template.recommendations) {
@@ -74,6 +82,7 @@ export default async function AssessmentResultPage({
       }
       templateConfig = {
         scoringMode: template.scoring_mode,
+        resultVisualization: template.result_visualization,
         scaleMin: template.scale_min,
         scaleMax: template.scale_max,
         sections,

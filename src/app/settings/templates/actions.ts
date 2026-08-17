@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { AssessmentQuestion } from "@/data/questions";
 import type { TemplateSection } from "@/types/assessment";
-import type { ScoringMode, TemplateRecommendations } from "@/types/template";
+import type {
+  ResultVisualization,
+  ScoringMode,
+  TemplateRecommendations,
+} from "@/types/template";
 
 export interface TemplateActionResult {
   error?: string;
@@ -18,6 +22,7 @@ export interface TemplateInput {
   scoringMode: ScoringMode;
   scaleMin: number;
   scaleMax: number;
+  resultVisualization: ResultVisualization;
   sections: TemplateSection[];
   questions: AssessmentQuestion[];
   isActive: boolean;
@@ -82,6 +87,7 @@ export async function createTemplate(
       scoring_mode: input.scoringMode,
       scale_min: input.scaleMin,
       scale_max: input.scaleMax,
+      result_visualization: input.resultVisualization,
       sections: input.sections,
       questions: input.questions,
       is_active: input.isActive,
@@ -117,6 +123,7 @@ export async function updateTemplate(
       scoring_mode: input.scoringMode,
       scale_min: input.scaleMin,
       scale_max: input.scaleMax,
+      result_visualization: input.resultVisualization,
       sections: input.sections,
       questions: input.questions,
       is_active: input.isActive,

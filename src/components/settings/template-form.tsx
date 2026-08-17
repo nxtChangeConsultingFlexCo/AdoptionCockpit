@@ -23,6 +23,7 @@ import {
 import type { AssessmentQuestion } from "@/data/questions";
 import type {
   AssessmentTemplateRow,
+  ResultVisualization,
   ScoringMode,
   TemplateRecommendations,
 } from "@/types/template";
@@ -30,6 +31,11 @@ import type {
 const SCORING_MODE_OPTIONS: { value: ScoringMode; label: string }[] = [
   { value: "dimension_average", label: "Durchschnitt je Sektion (0–100, 3 Stufen)" },
   { value: "section_sum", label: "Summe je Sektion (2 Stufen: gering/hoch)" },
+];
+
+const RESULT_VISUALIZATION_OPTIONS: { value: ResultVisualization; label: string }[] = [
+  { value: "bars", label: "Balken je Sektion" },
+  { value: "radar", label: "Spinnennetz-Diagramm (ab 3 Sektionen sinnvoll)" },
 ];
 
 function tiersForMode(mode: ScoringMode): readonly string[] {
@@ -71,6 +77,9 @@ export function TemplateForm({ template }: TemplateFormProps) {
   );
   const [scaleMin, setScaleMin] = useState(template?.scale_min ?? 1);
   const [scaleMax, setScaleMax] = useState(template?.scale_max ?? 5);
+  const [resultVisualization, setResultVisualization] = useState<ResultVisualization>(
+    template?.result_visualization ?? "bars",
+  );
   const [sections, setSections] = useState<TemplateSection[]>(template?.sections ?? []);
   const [questions, setQuestions] = useState<AssessmentQuestion[]>(
     template?.questions ?? [],
@@ -162,6 +171,7 @@ export function TemplateForm({ template }: TemplateFormProps) {
       scoringMode,
       scaleMin,
       scaleMax,
+      resultVisualization,
       sections,
       questions,
       isActive,
@@ -278,6 +288,26 @@ export function TemplateForm({ template }: TemplateFormProps) {
           />
         </div>
       </div>
+
+      {scoringMode === "section_sum" && (
+        <div className="flex flex-col gap-1.5 sm:w-1/3">
+          <Label htmlFor="result_visualization">Ergebnis-Darstellung</Label>
+          <select
+            id="result_visualization"
+            value={resultVisualization}
+            onChange={(e) =>
+              setResultVisualization(e.target.value as ResultVisualization)
+            }
+            className={selectClassName}
+          >
+            {RESULT_VISUALIZATION_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="flex flex-col gap-4 border-t border-border pt-6">
         <div className="flex items-center justify-between">
