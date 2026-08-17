@@ -44,7 +44,7 @@ export async function signup(formData: FormData) {
   const protocol = host.startsWith("localhost") ? "http" : "https";
   const origin = `${protocol}://${host}`;
 
-  const { error } = await supabase.auth.signUp({
+  const { data: signUpData, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -63,6 +63,18 @@ export async function signup(formData: FormData) {
 
   if (error) {
     redirectWithError(error.message);
+  }
+
+  // Supabase gibt bei einer bereits registrierten E-Mail bewusst keinen
+  // Error zurück (Schutz gegen User-Enumeration), sondern ein "User"-Objekt
+  // ohne Identities und ohne Session - ansonsten nicht von einer echten
+  // Neu-Registrierung zu unterscheiden. Ohne diese Prüfung landet man auf
+  // der "Bitte E-Mail bestätigen"-Seite, obwohl gar keine neue Mail
+  // verschickt wurde, und wartet vergeblich.
+  if (signUpData.user && signUpData.user.identities?.length === 0) {
+    redirectWithError(
+      "Für diese E-Mail-Adresse existiert bereits ein Konto. Bitte melde dich stattdessen an.",
+    );
   }
 
   // Ist "Confirm email" im Supabase-Projekt aktiviert, existiert direkt nach
