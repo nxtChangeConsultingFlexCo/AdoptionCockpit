@@ -52,6 +52,28 @@ interface AssessmentResultViewProps {
   templateConfig?: ResultTemplateConfig | null;
 }
 
+interface SectionGroup {
+  group: string | undefined;
+  sections: TemplateSection[];
+}
+
+// Fasst Sektionen nach ihrem optionalen group-Feld zusammen (Reihenfolge
+// = erstes Vorkommen). Hat kein Sektion ein group gesetzt, entsteht eine
+// einzelne Gruppe ohne Überschrift - identisch zum bisherigen, flachen
+// Grid.
+function groupSections(sections: TemplateSection[]): SectionGroup[] {
+  const groups: SectionGroup[] = [];
+  for (const section of sections) {
+    const existing = groups.find((g) => g.group === section.group);
+    if (existing) {
+      existing.sections.push(section);
+    } else {
+      groups.push({ group: section.group, sections: [section] });
+    }
+  }
+  return groups;
+}
+
 // Fallback für sehr alte Assessments ohne verknüpftes Template (vor
 // Migration 0011): Sektionen lassen sich dann nur noch aus den Score-Keys
 // ableiten, mit dem Key selbst als Label.
@@ -225,24 +247,39 @@ export function AssessmentResultView({
           {completedAtNote}
         </section>
 
-        <section className="grid gap-4 sm:grid-cols-2">
-          {sections.map((section) => {
-            const sum = result.scores[section.key] ?? 0;
-            const questionCount = templateConfig.questionCountBySection[section.key] ?? 0;
-            const min = questionCount * templateConfig.scaleMin;
-            const max = questionCount * templateConfig.scaleMax;
-            const tier = getSectionSumTier(sum, min, max);
-            return (
-              <SectionScaleCard
-                key={section.key}
-                label={section.label}
-                value={sum}
-                min={min}
-                max={max}
-                recommendation={recommendations?.bySection?.[section.key]?.[tier]}
-              />
-            );
-          })}
+        <section className="flex flex-col gap-8">
+          {groupSections(sections).map((sectionGroup, groupIndex) => (
+            <div
+              key={sectionGroup.group ?? `ungrouped-${groupIndex}`}
+              className="flex flex-col gap-4"
+            >
+              {sectionGroup.group && (
+                <h3 className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
+                  {sectionGroup.group}
+                </h3>
+              )}
+              <div className="grid gap-4 sm:grid-cols-2">
+                {sectionGroup.sections.map((section) => {
+                  const sum = result.scores[section.key] ?? 0;
+                  const questionCount =
+                    templateConfig.questionCountBySection[section.key] ?? 0;
+                  const min = questionCount * templateConfig.scaleMin;
+                  const max = questionCount * templateConfig.scaleMax;
+                  const tier = getSectionSumTier(sum, min, max);
+                  return (
+                    <SectionScaleCard
+                      key={section.key}
+                      label={section.label}
+                      value={sum}
+                      min={min}
+                      max={max}
+                      recommendation={recommendations?.bySection?.[section.key]?.[tier]}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </section>
 
         {footer}

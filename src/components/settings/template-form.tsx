@@ -323,33 +323,47 @@ export function TemplateForm({ template }: TemplateFormProps) {
           {sections.map((section, index) => (
             <div
               key={index}
-              className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-[1fr_1fr_auto]"
+              className="flex flex-col gap-3 rounded-lg border border-border p-4"
             >
-              <div className="flex flex-col gap-1">
-                <Label className="text-xs text-muted-foreground">Key</Label>
-                <Input
-                  value={section.key}
-                  onChange={(e) => updateSection(index, { key: e.target.value })}
-                  placeholder="z. B. komplexitaet"
-                />
+              <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">Key</Label>
+                  <Input
+                    value={section.key}
+                    onChange={(e) => updateSection(index, { key: e.target.value })}
+                    placeholder="z. B. komplexitaet"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">Label</Label>
+                  <Input
+                    value={section.label}
+                    onChange={(e) => updateSection(index, { label: e.target.value })}
+                    placeholder="z. B. Komplexität des Projekts"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeSection(index)}
+                  >
+                    Entfernen
+                  </Button>
+                </div>
               </div>
               <div className="flex flex-col gap-1">
-                <Label className="text-xs text-muted-foreground">Label</Label>
+                <Label className="text-xs text-muted-foreground">
+                  Gruppe (optional)
+                </Label>
                 <Input
-                  value={section.label}
-                  onChange={(e) => updateSection(index, { label: e.target.value })}
-                  placeholder="z. B. Komplexität des Projekts"
+                  value={section.group ?? ""}
+                  onChange={(e) =>
+                    updateSection(index, { group: e.target.value || undefined })
+                  }
+                  placeholder="z. B. Allgemeine organisatorische Fähigkeiten"
                 />
-              </div>
-              <div className="flex items-end">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeSection(index)}
-                >
-                  Entfernen
-                </Button>
               </div>
             </div>
           ))}

@@ -8,6 +8,11 @@ import type { AppRole } from "./roles";
 export interface TemplateSection {
   key: string;
   label: string;
+  // Optionale übergeordnete Gruppierung (z. B. "Allgemeine" vs.
+  // "Operative Fähigkeiten") - rein fürs Rendering, hat keinen Einfluss
+  // auf Scoring. Sektionen ohne group werden weiterhin als flache Liste
+  // dargestellt.
+  group?: string;
 }
 
 export type AssessmentStatus = "draft" | "completed";

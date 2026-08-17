@@ -190,14 +190,26 @@ export function AssessmentFlow({
         </select>
       </div>
 
-      {sections.map((section) => {
+      {sections.map((section, sectionIndex) => {
         const sectionQuestions = questions.filter(
           (q) => q.sectionKey === section.key,
         );
         if (sectionQuestions.length === 0) return null;
 
+        // Gruppenüberschrift nur beim ersten Auftreten einer neuen group
+        // rendern (z. B. "Allgemeine" vs. "Operative organisatorische
+        // Fähigkeiten"), damit mehrere Sektionen derselben Gruppe nicht
+        // wiederholt beschriftet werden.
+        const showGroupHeading =
+          section.group && section.group !== sections[sectionIndex - 1]?.group;
+
         return (
           <section key={section.key} className="flex flex-col gap-6">
+            {showGroupHeading && (
+              <h3 className="-mb-2 text-sm font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-500">
+                {section.group}
+              </h3>
+            )}
             <h2 className="text-lg font-medium text-zinc-950 dark:text-zinc-50">
               {section.label}
             </h2>
