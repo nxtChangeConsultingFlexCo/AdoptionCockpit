@@ -38,11 +38,16 @@ interface ProfileSummary {
   email: string | null;
 }
 
-export default async function OrgAssessmentsPage() {
+export default async function OrgAssessmentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ leaderId?: string }>;
+}) {
   const currentUser = await requireRole(
     ["client_admin", "steering_committee"],
     "/settings/assessments",
   );
+  const { leaderId } = await searchParams;
   // Steering Committee ist Aufsicht/Reporting, kein Genehmiger - sieht
   // die Ergebnisse org-weit, verwaltet aber nicht den Freigabe-Katalog.
   const canManageCatalog =
@@ -117,7 +122,43 @@ export default async function OrgAssessmentsPage() {
     ((profileData ?? []) as ProfileSummary[]).map((p) => [p.id, p]),
   );
 
-  const resultRows: AssessmentResultRow[] = assessments.map((assessment) => {
+  // Team-/Segmentierungs-Filter: nutzt die bestehende Reporting-Linie
+  // (org_assignments, "child reports_to parent") statt eines neuen
+  // Abteilungsfelds. "Team" = direkte Berichte des gewählten Cluster
+  // Leads (keine rekursive Kettenauflösung - deckt den üblichen Fall ab
+  // und bleibt einfach nachvollziehbar).
+  const { data: assignmentRows } =
+    canManageCatalog && organizationId
+      ? await supabase
+          .from("org_assignments")
+          .select("child_user_id, parent_user_id")
+          .eq("organization_id", organizationId)
+      : { data: [] as { child_user_id: string; parent_user_id: string }[] };
+
+  const childToParent = new Map(
+    (assignmentRows ?? []).map((row) => [row.child_user_id, row.parent_user_id]),
+  );
+
+  const { data: leaderRows } =
+    canManageCatalog && organizationId
+      ? await supabase
+          .from("profiles")
+          .select("id, first_name, last_name, email, profile_roles!inner(role)")
+          .eq("organization_id", organizationId)
+          .eq("profile_roles.role", "leader")
+      : { data: [] as ProfileSummary[] };
+
+  const leaders = ((leaderRows ?? []) as ProfileSummary[]).map((p) => ({
+    id: p.id,
+    name:
+      [p.first_name, p.last_name].filter(Boolean).join(" ") || p.email || "Unbekannt",
+  }));
+
+  const filteredAssessments = leaderId
+    ? assessments.filter((a) => a.user_id && childToParent.get(a.user_id) === leaderId)
+    : assessments;
+
+  const resultRows: AssessmentResultRow[] = filteredAssessments.map((assessment) => {
     const profile = assessment.user_id ? profileMap.get(assessment.user_id) : undefined;
     const name = profile
       ? [profile.first_name, profile.last_name].filter(Boolean).join(" ") ||
@@ -205,14 +246,18 @@ export default async function OrgAssessmentsPage() {
           }
         >
           <h2 className="text-lg font-medium text-foreground">
-            Ergebnisse ({assessments.length})
+            Ergebnisse ({resultRows.length})
           </h2>
           {assessments.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground">
               Noch keine abgeschlossenen Checks in deiner Organisation.
             </div>
           ) : (
-            <AssessmentResultsTable rows={resultRows} />
+            <AssessmentResultsTable
+              rows={resultRows}
+              leaders={leaders}
+              selectedLeaderId={leaderId}
+            />
           )}
         </section>
       </div>

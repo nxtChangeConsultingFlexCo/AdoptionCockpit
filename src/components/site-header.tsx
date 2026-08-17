@@ -99,8 +99,14 @@ export async function SiteHeader() {
                       { href: "/settings/users", label: "Nutzer" },
                       { href: "/settings/assignments", label: "Zuordnungen" },
                       { href: "/settings/cockpit", label: "Cockpit-KPIs" },
+                      { href: "/sponsor", label: "Sponsor-Ansicht" },
                     ]}
                   />
+                )}
+                {isSteering && !isClientAdmin && (
+                  <Link href="/sponsor" className={navLinkClassName}>
+                    Sponsor-Ansicht
+                  </Link>
                 )}
               </nav>
             )}

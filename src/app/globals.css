@@ -128,3 +128,21 @@
     @apply font-sans;
   }
 }
+
+/* Druck-/PDF-Export (z. B. Check-Ergebnisse für eine Steering-Committee-
+   Sitzung): Navigation und interaktive Elemente ausblenden, erzwungen
+   helle Darstellung unabhängig vom aktiven Theme, damit ein Ausdruck
+   nicht versehentlich auf dunklem Grund landet. */
+@media print {
+  header,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #0a0a0a !important;
+  }
+  main, .print-container {
+    padding: 0 !important;
+  }
+}

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RoadmapTabs } from "@/components/roadmap-tabs";
 import { StatusBadge } from "@/components/change-requests/status-badge";
+import { KanbanBoard } from "@/components/change-requests/kanban-board";
 import type { ChangeRequestRow, ChangeRequestStatus } from "@/types/governance";
 
 const STATUS_FILTERS: Record<string, { label: string; statuses: ChangeRequestStatus[] }> = {
@@ -32,13 +33,26 @@ const selectClassName =
 export default async function ChangeRequestsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string; sort?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; sort?: string; view?: string }>;
 }) {
   await requireUser("/change-requests");
-  const { status, q, sort } = await searchParams;
+  const { status, q, sort, view } = await searchParams;
   const filter = status ? STATUS_FILTERS[status] : undefined;
   const sortKey: SortKey = sort && sort in SORT_OPTIONS ? (sort as SortKey) : "newest";
+  const isBoardView = view === "board";
   const supabase = await createClient();
+
+  function buildHref(overrides: { view?: string }): string {
+    const params = new URLSearchParams();
+    if (status) params.set("status", status);
+    if (q) params.set("q", q);
+    if (sort) params.set("sort", sort);
+    if (overrides.view) params.set("view", overrides.view);
+    const qs = params.toString();
+    return qs ? `/change-requests?${qs}` : "/change-requests";
+  }
+  const listHref = buildHref({});
+  const boardHref = buildHref({ view: "board" });
 
   let query = supabase
     .from("change_requests")
@@ -47,7 +61,10 @@ export default async function ChangeRequestsPage({
     )
     .order("created_at", { ascending: sortKey === "oldest" });
 
-  if (filter) {
+  // In der Kanban-Ansicht ist die Statusgruppierung selbst der Filter -
+  // ein zusätzlicher Status-Chip würde die meisten Spalten künstlich
+  // leeren, daher greift er dort nicht.
+  if (filter && !isBoardView) {
     query = query.in("status", filter.statuses);
   }
   if (q?.trim()) {
@@ -95,13 +112,38 @@ export default async function ChangeRequestsPage({
               </span>
             )}
           </div>
-          <Button render={<Link href="/change-requests/new" />}>
-            Neue Idee einreichen
-          </Button>
+          <div className="flex items-center gap-3">
+            <div className="flex gap-1 rounded-lg border border-border bg-muted/40 p-1">
+              <Link
+                href={listHref}
+                className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
+                  !isBoardView
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Liste
+              </Link>
+              <Link
+                href={boardHref}
+                className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
+                  isBoardView
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Kanban
+              </Link>
+            </div>
+            <Button render={<Link href="/change-requests/new" />}>
+              Neue Idee einreichen
+            </Button>
+          </div>
         </div>
 
         <form method="get" className="flex flex-wrap items-end gap-3">
-          {status && <input type="hidden" name="status" value={status} />}
+          {status && !isBoardView && <input type="hidden" name="status" value={status} />}
+          {isBoardView && <input type="hidden" name="view" value="board" />}
           <div className="flex flex-1 flex-col gap-1 sm:max-w-xs">
             <label htmlFor="q" className="text-xs text-muted-foreground">
               Suche
@@ -153,6 +195,8 @@ export default async function ChangeRequestsPage({
               </Button>
             )}
           </div>
+        ) : isBoardView ? (
+          <KanbanBoard requests={requests} />
         ) : (
           <div className="flex flex-col gap-3">
             {requests.map((request) => (

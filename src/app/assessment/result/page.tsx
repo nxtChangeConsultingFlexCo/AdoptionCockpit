@@ -4,9 +4,12 @@ import {
   type ResultTemplateConfig,
   type StoredResult,
 } from "@/components/assessment/assessment-result-view";
+import type { ScoreTrendPoint } from "@/components/assessment/score-trend";
 import type { AssessmentScores, TemplateBenchmark, TemplateSection } from "@/types/assessment";
 import type { AssessmentTemplateRow, TemplateRecommendations } from "@/types/template";
 import type { AssessmentQuestion } from "@/data/questions";
+
+const MAX_TREND_POINTS = 10;
 
 const MIN_BENCHMARK_SAMPLE_SIZE = 5;
 
@@ -43,6 +46,32 @@ export default async function AssessmentResultPage({
       completedAt = data.created_at;
       effectiveTemplateId = data.template_id;
     }
+  }
+
+  // Verlauf: frühere abgeschlossene Durchläufe desselben Templates durch
+  // denselben Nutzer, für die Trend-Anzeige. Nur für angemeldete Nutzer
+  // sinnvoll - Gäste haben keine dauerhaft verknüpfte Historie.
+  let trendPoints: ScoreTrendPoint[] = [];
+  if (user && effectiveTemplateId) {
+    const { data: historyRows } = await supabase
+      .from("assessments")
+      .select("created_at, total_score")
+      .eq("user_id", user.id)
+      .eq("template_id", effectiveTemplateId)
+      .eq("status", "completed")
+      .order("created_at", { ascending: true })
+      .limit(MAX_TREND_POINTS);
+
+    trendPoints = (historyRows ?? [])
+      .filter((row) => row.total_score !== null)
+      .map((row) => ({
+        date: new Date(row.created_at).toLocaleDateString("de-DE", {
+          day: "2-digit",
+          month: "short",
+          year: "2-digit",
+        }),
+        score: row.total_score as number,
+      }));
   }
 
   let recommendations: TemplateRecommendations | null = null;
@@ -145,6 +174,7 @@ export default async function AssessmentResultPage({
           benchmark={benchmark}
           recommendations={recommendations}
           templateConfig={templateConfig}
+          trendPoints={trendPoints}
         />
       </div>
     </div>

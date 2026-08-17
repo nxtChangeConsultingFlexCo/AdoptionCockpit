@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -12,8 +13,19 @@ export interface AssessmentResultRow {
   score: number | null;
 }
 
+export interface TeamLeaderOption {
+  id: string;
+  name: string;
+}
+
 interface AssessmentResultsTableProps {
   rows: AssessmentResultRow[];
+  // Team-/Abteilungs-Segmentierung: bereits serverseitig gefilterte rows
+  // (per searchParams.leaderId, siehe settings/assessments/page.tsx) -
+  // die Auswahl selbst navigiert über die URL statt client-seitig zu
+  // filtern, damit sie mit der Server-Query in Einklang bleibt.
+  leaders?: TeamLeaderOption[];
+  selectedLeaderId?: string;
 }
 
 const SORT_OPTIONS = {
@@ -44,9 +56,25 @@ function toCsvValue(value: string): string {
 // (ohne Paginierung) serverseitig geladen sind - für Suche/Sortierung ist
 // kein zusätzlicher Round-Trip nötig, und der CSV-Export muss ohnehin im
 // Browser laufen (Blob-Download).
-export function AssessmentResultsTable({ rows }: AssessmentResultsTableProps) {
+export function AssessmentResultsTable({
+  rows,
+  leaders = [],
+  selectedLeaderId,
+}: AssessmentResultsTableProps) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("newest");
+
+  function handleLeaderChange(nextLeaderId: string) {
+    const params = new URLSearchParams(window.location.search);
+    if (nextLeaderId) {
+      params.set("leaderId", nextLeaderId);
+    } else {
+      params.delete("leaderId");
+    }
+    const qs = params.toString();
+    router.push(`${window.location.pathname}${qs ? `?${qs}` : ""}#ergebnisse`);
+  }
 
   const filteredRows = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -111,6 +139,26 @@ export function AssessmentResultsTable({ rows }: AssessmentResultsTableProps) {
             placeholder="Person oder Check…"
           />
         </div>
+        {leaders.length > 0 && (
+          <div className="flex flex-col gap-1">
+            <label htmlFor="results-team" className="text-xs text-muted-foreground">
+              Team (Cluster Lead)
+            </label>
+            <select
+              id="results-team"
+              value={selectedLeaderId ?? ""}
+              onChange={(e) => handleLeaderChange(e.target.value)}
+              className={selectClassName}
+            >
+              <option value="">Alle Teams</option>
+              {leaders.map((leader) => (
+                <option key={leader.id} value={leader.id}>
+                  {leader.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="flex flex-col gap-1">
           <label htmlFor="results-sort" className="text-xs text-muted-foreground">
             Sortierung

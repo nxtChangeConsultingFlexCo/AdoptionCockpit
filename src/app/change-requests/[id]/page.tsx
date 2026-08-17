@@ -13,6 +13,10 @@ import {
   type ChangeHistoryEvent,
 } from "@/components/change-requests/change-history";
 import {
+  CommentThread,
+  type CommentItem,
+} from "@/components/change-requests/comment-thread";
+import {
   CHANGE_REQUEST_PRIORITY_LABELS,
   type ChangeRequestRow,
   type ChangeRequestStatus,
@@ -117,6 +121,31 @@ export default async function ChangeRequestDetailPage({
     new_value: e.new_value,
     changed_by_name:
       formatName(eventProfileMap.get(e.changed_by ?? "")) ?? "Unbekannt",
+  }));
+
+  const { data: commentRows } = await supabase
+    .from("change_request_comments")
+    .select("id, body, created_at, author_id")
+    .eq("change_request_id", changeRequest.id)
+    .order("created_at", { ascending: true });
+
+  const commentAuthorIds = Array.from(
+    new Set((commentRows ?? []).map((c) => c.author_id).filter((v): v is string => Boolean(v))),
+  );
+  const { data: commentProfiles } =
+    commentAuthorIds.length > 0
+      ? await supabase
+          .from("profiles")
+          .select("id, first_name, last_name, email")
+          .in("id", commentAuthorIds)
+      : { data: [] as MiniProfile[] };
+
+  const commentProfileMap = new Map((commentProfiles ?? []).map((p) => [p.id, p]));
+  const comments: CommentItem[] = (commentRows ?? []).map((c) => ({
+    id: c.id,
+    body: c.body,
+    created_at: c.created_at,
+    author_name: formatName(commentProfileMap.get(c.author_id ?? "")) ?? "Unbekannt",
   }));
 
   return (
@@ -267,6 +296,8 @@ export default async function ChangeRequestDetailPage({
               </p>
               <ChangeHistory events={historyEvents} />
             </div>
+
+            <CommentThread requestId={changeRequest.id} comments={comments} />
           </CardContent>
         </Card>
       </div>

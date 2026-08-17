@@ -7,6 +7,7 @@ import { RadialScore } from "./radial-score";
 import { DimensionCard } from "./dimension-card";
 import { SectionScaleCard } from "./section-scale-card";
 import { RadarChart } from "./radar-chart";
+import { ScoreTrend, type ScoreTrendPoint } from "./score-trend";
 import { Button } from "@/components/ui/button";
 import type {
   AssessmentScores,
@@ -53,6 +54,7 @@ interface AssessmentResultViewProps {
   benchmark?: TemplateBenchmark | null;
   recommendations?: TemplateRecommendations | null;
   templateConfig?: ResultTemplateConfig | null;
+  trendPoints?: ScoreTrendPoint[];
 }
 
 interface SectionGroup {
@@ -91,6 +93,7 @@ export function AssessmentResultView({
   benchmark,
   recommendations,
   templateConfig,
+  trendPoints = [],
 }: AssessmentResultViewProps) {
   const router = useRouter();
   const [result, setResult] = useState<StoredResult | null>(initialResult);
@@ -132,7 +135,12 @@ export function AssessmentResultView({
   const scoringMode = templateConfig?.scoringMode ?? "dimension_average";
 
   const header = (
-    <div className="flex flex-col items-center gap-1.5">
+    <div className="flex w-full flex-col items-center gap-1.5">
+      <div className="no-print flex w-full justify-end">
+        <Button variant="outline" size="sm" onClick={() => window.print()}>
+          Als PDF speichern
+        </Button>
+      </div>
       <span className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
         Dein Check-Ergebnis
       </span>
@@ -143,7 +151,7 @@ export function AssessmentResultView({
   );
 
   const footer = (
-    <section className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-card px-6 py-10 text-center">
+    <section className="no-print flex flex-col items-center gap-4 rounded-2xl border border-border bg-card px-6 py-10 text-center">
       <h2 className="text-xl font-semibold tracking-tight text-foreground">
         Bereit für den nächsten Schritt?
       </h2>
@@ -177,6 +185,21 @@ export function AssessmentResultView({
         year: "numeric",
       })}
     </p>
+  );
+
+  // Verlauf nur ab zwei Punkten sinnvoll (sonst gibt es nichts zu
+  // vergleichen). Wertebereich richtet sich nach dem Scoring-Modus:
+  // 0-100 für dimension_average, sonst der Gesamtsummen-Bereich.
+  const trendMin =
+    scoringMode === "section_sum" && templateConfig
+      ? templateConfig.totalQuestionCount * templateConfig.scaleMin
+      : 0;
+  const trendMax =
+    scoringMode === "section_sum" && templateConfig
+      ? templateConfig.totalQuestionCount * templateConfig.scaleMax
+      : 100;
+  const trendSection = trendPoints.length >= 2 && (
+    <ScoreTrend points={trendPoints} min={trendMin} max={trendMax} />
   );
 
   if (scoringMode === "section_sum" && templateConfig) {
@@ -254,6 +277,8 @@ export function AssessmentResultView({
 
           {completedAtNote}
         </section>
+
+        {trendSection}
 
         <section className="flex flex-col gap-8">
           {groupSections(sections).map((sectionGroup, groupIndex) => (
@@ -357,6 +382,8 @@ export function AssessmentResultView({
 
         {completedAtNote}
       </section>
+
+      {trendSection}
 
       <section className="grid gap-4 sm:grid-cols-2">
         {sections.map((section) => {

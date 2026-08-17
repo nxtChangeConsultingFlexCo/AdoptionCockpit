@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { KpiCard } from "@/components/cockpit/kpi-card";
 import { CockpitKpiTile } from "@/components/cockpit/cockpit-kpi-tile";
+import { OnboardingChecklist, type OnboardingStep } from "@/components/cockpit/onboarding-checklist";
 import type { AssessmentScores, TemplateSection } from "@/types/assessment";
 import { getScoreTier, SCORE_TIER_LABELS } from "@/data/result-copy";
 import type { TemplateRecommendations } from "@/types/template";
@@ -118,6 +119,64 @@ export default async function CockpitPage() {
     </section>
   );
 
+  // Geführte Onboarding-Checkliste: rein aus vorhandenen Daten
+  // abgeleitet, keine eigene "erledigt"-Persistenz. Verschwindet von
+  // selbst, sobald alle Schritte erfüllt sind.
+  const [teamAssignmentResult, roadmapItemResult, qualifiedRequestResult, ownRequestResult] =
+    await Promise.all([
+      supabase
+        .from("org_assignments")
+        .select("child_user_id", { count: "exact", head: true })
+        .eq("child_user_id", user.id),
+      user.organizationId
+        ? supabase
+            .from("roadmap_items")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", user.organizationId)
+        : Promise.resolve({ count: 0 }),
+      user.organizationId
+        ? supabase
+            .from("change_requests")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", user.organizationId)
+            .in("status", ["qualified", "it_backlog", "in_implementation", "done"])
+        : Promise.resolve({ count: 0 }),
+      supabase
+        .from("change_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("requested_by", user.id),
+    ]);
+
+  const onboardingSteps: OnboardingStep[] = [
+    {
+      label: "Ersten Check abschließen",
+      done: recentAssessments.length > 0,
+      href: "/assessment",
+      actionLabel: "Check starten",
+    },
+    {
+      label: "Eigene Führungskraft zuordnen",
+      done: (teamAssignmentResult.count ?? 0) > 0,
+      href: "/settings/team",
+      actionLabel: "Team einrichten",
+    },
+    {
+      label: "Roadmap-Eintrag anlegen oder qualifizieren lassen",
+      done: (roadmapItemResult.count ?? 0) > 0 || (qualifiedRequestResult.count ?? 0) > 0,
+      href: "/roadmap",
+      actionLabel: "Zur Roadmap",
+    },
+    {
+      label: "Erste Change-Anfrage einreichen",
+      done: (ownRequestResult.count ?? 0) > 0,
+      href: "/change-requests/new",
+      actionLabel: "Idee einreichen",
+    },
+  ];
+  const onboardingSection = onboardingSteps.some((s) => !s.done) && (
+    <OnboardingChecklist steps={onboardingSteps} />
+  );
+
   const kpiSection = kpiValues && visibleKpiIds.length > 0 && (
     <section className="flex flex-col gap-3">
       <h2 className="text-lg font-semibold text-foreground">Überblick</h2>
@@ -153,6 +212,7 @@ export default async function CockpitPage() {
               Check starten
             </Button>
           </div>
+          {onboardingSection}
           {kpiSection}
           {recentSection}
         </div>
@@ -208,6 +268,8 @@ export default async function CockpitPage() {
             })}
           </p>
         </div>
+
+        {onboardingSection}
 
         {kpiSection}
 
