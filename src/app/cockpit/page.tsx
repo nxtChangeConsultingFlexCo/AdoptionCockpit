@@ -11,11 +11,7 @@ import {
 } from "@/components/ui/card";
 import { KpiCard } from "@/components/cockpit/kpi-card";
 import { CockpitKpiTile } from "@/components/cockpit/cockpit-kpi-tile";
-import {
-  ASSESSMENT_DIMENSIONS,
-  ASSESSMENT_DIMENSION_LABELS,
-  type AssessmentScores,
-} from "@/types/assessment";
+import type { AssessmentScores, TemplateSection } from "@/types/assessment";
 import { getScoreTier, SCORE_TIER_LABELS } from "@/data/result-copy";
 import type { TemplateRecommendations } from "@/types/template";
 import { computeCockpitKpis } from "@/lib/cockpit-kpis";
@@ -33,6 +29,7 @@ interface CompletedAssessment {
   scores: AssessmentScores;
   company_name: string | null;
   template_id: string | null;
+  assessment_templates: { sections: TemplateSection[] } | null;
 }
 
 export default async function CockpitPage() {
@@ -54,14 +51,21 @@ export default async function CockpitPage() {
   const kpiValues =
     visibleKpiIds.length > 0 ? await computeCockpitKpis(supabase, user.id) : null;
 
+  // Nur dimension_average-Assessments (bisher: KI-Readiness) fließen hier
+  // ein - die Dimension-KPIs unten (Stärkste/Schwächste Dimension) gehen
+  // von einem 0-100-Score je Sektion aus, was bei section_sum-Templates
+  // (Summen statt Prozent-Score) nicht zutrifft. Siehe Migration 0037.
   const { data } = await supabase
     .from("assessments")
-    .select("id, created_at, total_score, scores, company_name, template_id")
+    .select(
+      "id, created_at, total_score, scores, company_name, template_id, assessment_templates!inner(sections, scoring_mode)",
+    )
     .eq("user_id", user.id)
     .eq("status", "completed")
+    .eq("assessment_templates.scoring_mode", "dimension_average")
     .order("created_at", { ascending: false });
 
-  const assessments = (data ?? []) as CompletedAssessment[];
+  const assessments = (data ?? []) as unknown as CompletedAssessment[];
   const latest = assessments[0];
 
   const kpiSection = kpiValues && visibleKpiIds.length > 0 && (
@@ -105,9 +109,10 @@ export default async function CockpitPage() {
     );
   }
 
-  const dimensionScores = ASSESSMENT_DIMENSIONS.map((dimension) => ({
-    dimension,
-    score: latest.scores[dimension],
+  const sections = latest.assessment_templates?.sections ?? [];
+  const dimensionScores = sections.map((section) => ({
+    section,
+    score: latest.scores[section.key],
   }));
   const strongest = dimensionScores.reduce((a, b) => (b.score > a.score ? b : a));
   const weakest = dimensionScores.reduce((a, b) => (b.score < a.score ? b : a));
@@ -125,7 +130,7 @@ export default async function CockpitPage() {
     }
   }
   const weakestRecommendation =
-    recommendations?.byDimension?.[weakest.dimension]?.[getScoreTier(weakest.score)];
+    recommendations?.bySection?.[weakest.section.key]?.[getScoreTier(weakest.score)];
 
   return (
     <div className="flex flex-1 justify-center bg-zinc-50 px-4 py-12 dark:bg-black">
@@ -160,12 +165,12 @@ export default async function CockpitPage() {
           <KpiCard
             label="Stärkste Dimension"
             value={`${strongest.score}`}
-            sublabel={ASSESSMENT_DIMENSION_LABELS[strongest.dimension]}
+            sublabel={strongest.section.label}
           />
           <KpiCard
             label="Größter Hebel"
             value={`${weakest.score}`}
-            sublabel={ASSESSMENT_DIMENSION_LABELS[weakest.dimension]}
+            sublabel={weakest.section.label}
           />
           <KpiCard
             label="Checks"
@@ -182,7 +187,7 @@ export default async function CockpitPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">
-                  Nächster Fokus: {ASSESSMENT_DIMENSION_LABELS[weakest.dimension]}
+                  Nächster Fokus: {weakest.section.label}
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">

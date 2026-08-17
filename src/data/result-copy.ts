@@ -19,3 +19,21 @@ export const SCORE_TIER_LABELS: Record<ScoreTier, string> = {
   medium: "Solide Basis",
   high: "Vorreiterposition",
 };
+
+// Für section_sum-Templates (Summe statt 0-100-Score): nur ein binärer
+// Tier, gesplittet am Mittelpunkt des möglichen Wertebereichs
+// [count*scaleMin, count*scaleMax] - entspricht der Low/High-Interpretation
+// der SAP-artigen Vorlage, die keine Mittelstufe kennt.
+export const SECTION_SUM_TIERS = ["low", "high"] as const;
+
+export type SectionSumTier = (typeof SECTION_SUM_TIERS)[number];
+
+export function getSectionSumTier(sum: number, min: number, max: number): SectionSumTier {
+  const midpoint = (min + max) / 2;
+  return sum <= midpoint ? "low" : "high";
+}
+
+export const SECTION_SUM_TIER_LABELS: Record<SectionSumTier, string> = {
+  low: "Geringer Change-Management-Bedarf",
+  high: "Hoher Change-Management-Bedarf",
+};

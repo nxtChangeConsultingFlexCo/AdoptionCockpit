@@ -7,8 +7,13 @@ import type { AssessmentTemplateRow } from "@/types/template";
 
 type TemplateListItem = Pick<
   AssessmentTemplateRow,
-  "id" | "title" | "slug" | "is_active" | "sort_order" | "questions"
+  "id" | "title" | "slug" | "is_active" | "sort_order" | "questions" | "scoring_mode"
 >;
+
+const SCORING_MODE_LABELS: Record<AssessmentTemplateRow["scoring_mode"], string> = {
+  dimension_average: "Durchschnitt (0–100)",
+  section_sum: "Summe je Sektion",
+};
 
 export default async function TemplatesPage() {
   await requireRole(["god"], "/settings/templates");
@@ -16,7 +21,7 @@ export default async function TemplatesPage() {
 
   const { data } = await supabase
     .from("assessment_templates")
-    .select("id, title, slug, is_active, sort_order, questions")
+    .select("id, title, slug, is_active, sort_order, questions, scoring_mode")
     .is("organization_id", null)
     .order("sort_order", { ascending: true });
 
@@ -59,7 +64,8 @@ export default async function TemplatesPage() {
                   </Link>
                   <span className="text-xs text-muted-foreground">
                     /{template.slug} · {template.questions.length} Fragen ·
-                    Reihenfolge {template.sort_order}
+                    Reihenfolge {template.sort_order} ·{" "}
+                    {SCORING_MODE_LABELS[template.scoring_mode]}
                   </span>
                 </div>
                 <TemplateActiveToggle

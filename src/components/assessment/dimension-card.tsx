@@ -1,15 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ASSESSMENT_DIMENSION_LABELS, type AssessmentDimension } from "@/types/assessment";
 
 interface DimensionCardProps {
-  dimension: AssessmentDimension;
+  label: string;
   score: number;
   recommendation?: string;
   benchmarkScore?: number;
 }
 
 export function DimensionCard({
-  dimension,
+  label,
   score,
   recommendation,
   benchmarkScore,
@@ -18,7 +17,7 @@ export function DimensionCard({
     <Card>
       <CardHeader className="flex-row items-baseline justify-between gap-4 space-y-0">
         <CardTitle className="text-base font-medium text-foreground">
-          {ASSESSMENT_DIMENSION_LABELS[dimension]}
+          {label}
         </CardTitle>
         <span className="text-2xl font-semibold tabular-nums text-foreground">
           {score}

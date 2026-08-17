@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AssessmentFlow } from "@/components/assessment/assessment-flow";
 import type { AssessmentQuestion } from "@/data/questions";
+import type { TemplateSection } from "@/types/assessment";
 
 export default async function AssessmentTemplatePage({
   params,
@@ -13,7 +14,7 @@ export default async function AssessmentTemplatePage({
 
   const { data: template } = await supabase
     .from("assessment_templates")
-    .select("id, title, questions")
+    .select("id, title, questions, sections, scale_min, scale_max")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -32,6 +33,9 @@ export default async function AssessmentTemplatePage({
           templateId={template.id}
           templateTitle={template.title}
           questions={template.questions as AssessmentQuestion[]}
+          sections={template.sections as TemplateSection[]}
+          scaleMin={template.scale_min}
+          scaleMax={template.scale_max}
           isAuthenticated={Boolean(user)}
         />
       </div>

@@ -3,12 +3,25 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
+import type { AssessmentQuestion } from "@/data/questions";
+import type { ScoringMode } from "@/types/template";
 
 interface MyAssessment {
   id: string;
   total_score: number | null;
   created_at: string;
-  assessment_templates: { title: string } | null;
+  assessment_templates: {
+    title: string;
+    scoring_mode: ScoringMode;
+    scale_max: number;
+    questions: AssessmentQuestion[];
+  } | null;
+}
+
+function scoreMaxLabel(template: MyAssessment["assessment_templates"]): string {
+  if (!template) return "100";
+  if (template.scoring_mode === "dimension_average") return "100";
+  return String(template.questions.length * template.scale_max);
 }
 
 export default async function MyAssessmentsPage() {
@@ -20,7 +33,9 @@ export default async function MyAssessmentsPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("assessments")
-    .select("id, total_score, created_at, assessment_templates(title)")
+    .select(
+      "id, total_score, created_at, assessment_templates(title, scoring_mode, scale_max, questions)",
+    )
     .eq("user_id", user.id)
     .eq("status", "completed")
     .order("created_at", { ascending: false });
@@ -75,7 +90,9 @@ export default async function MyAssessmentsPage() {
                   <span className="text-2xl font-semibold tabular-nums text-foreground">
                     {assessment.total_score ?? "—"}
                   </span>
-                  <span className="text-xs text-muted-foreground">/ 100</span>
+                  <span className="text-xs text-muted-foreground">
+                    / {scoreMaxLabel(assessment.assessment_templates)}
+                  </span>
                 </div>
               </Link>
             ))}

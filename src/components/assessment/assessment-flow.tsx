@@ -4,11 +4,10 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SCALE_LABELS, type AssessmentQuestion } from "@/data/questions";
 import {
-  ASSESSMENT_DIMENSIONS,
-  ASSESSMENT_DIMENSION_LABELS,
   COMPANY_SIZE_BANDS,
   COMPANY_SIZE_BAND_LABELS,
   type CompanySizeBand,
+  type TemplateSection,
 } from "@/types/assessment";
 import { isAnswersComplete } from "@/lib/scoring";
 import {
@@ -29,6 +28,9 @@ interface AssessmentFlowProps {
   templateId: string;
   templateTitle: string;
   questions: AssessmentQuestion[];
+  sections: TemplateSection[];
+  scaleMin: number;
+  scaleMax: number;
   isAuthenticated: boolean;
 }
 
@@ -36,8 +38,15 @@ export function AssessmentFlow({
   templateId,
   templateTitle,
   questions,
+  sections,
+  scaleMin,
+  scaleMax,
   isAuthenticated,
 }: AssessmentFlowProps) {
+  const scaleValues = Array.from(
+    { length: scaleMax - scaleMin + 1 },
+    (_, i) => scaleMin + i,
+  );
   const router = useRouter();
   const storageKey = `adoptioncockpit_assessment_answers_${templateId}`;
 
@@ -181,16 +190,18 @@ export function AssessmentFlow({
         </select>
       </div>
 
-      {ASSESSMENT_DIMENSIONS.map((dimension) => {
-        const dimensionQuestions = questions.filter((q) => q.dimension === dimension);
-        if (dimensionQuestions.length === 0) return null;
+      {sections.map((section) => {
+        const sectionQuestions = questions.filter(
+          (q) => q.sectionKey === section.key,
+        );
+        if (sectionQuestions.length === 0) return null;
 
         return (
-          <section key={dimension} className="flex flex-col gap-6">
+          <section key={section.key} className="flex flex-col gap-6">
             <h2 className="text-lg font-medium text-zinc-950 dark:text-zinc-50">
-              {ASSESSMENT_DIMENSION_LABELS[dimension]}
+              {section.label}
             </h2>
-            {dimensionQuestions.map((question) => (
+            {sectionQuestions.map((question) => (
               <div key={question.id} className="flex flex-col gap-3">
                 <p className="text-sm text-zinc-800 dark:text-zinc-200">
                   {question.text}
@@ -200,23 +211,34 @@ export function AssessmentFlow({
                   onValueChange={(value) =>
                     handleAnswer(question.id, Number(value))
                   }
-                  className="grid grid-cols-5 gap-2"
+                  className="grid gap-2"
+                  style={{
+                    gridTemplateColumns: `repeat(${scaleValues.length}, minmax(0, 1fr))`,
+                  }}
                 >
-                  {[1, 2, 3, 4, 5].map((value) => (
-                    <label
-                      key={value}
-                      htmlFor={`${question.id}_${value}`}
-                      className="flex flex-col items-center gap-1.5 text-center"
-                    >
-                      <RadioGroupItem
-                        id={`${question.id}_${value}`}
-                        value={value.toString()}
-                      />
-                      <span className="hidden text-[11px] leading-tight text-zinc-500 sm:block dark:text-zinc-500">
-                        {value === 1 || value === 5 ? SCALE_LABELS[value] : value}
-                      </span>
-                    </label>
-                  ))}
+                  {scaleValues.map((value) => {
+                    const label =
+                      value === scaleMin
+                        ? (question.lowLabel ?? SCALE_LABELS[value])
+                        : value === scaleMax
+                          ? (question.highLabel ?? SCALE_LABELS[value])
+                          : undefined;
+                    return (
+                      <label
+                        key={value}
+                        htmlFor={`${question.id}_${value}`}
+                        className="flex flex-col items-center gap-1.5 text-center"
+                      >
+                        <RadioGroupItem
+                          id={`${question.id}_${value}`}
+                          value={value.toString()}
+                        />
+                        <span className="hidden text-[11px] leading-tight text-zinc-500 sm:block dark:text-zinc-500">
+                          {label ?? value}
+                        </span>
+                      </label>
+                    );
+                  })}
                 </RadioGroup>
               </div>
             ))}

@@ -1,15 +1,19 @@
 import type { AssessmentQuestion } from "@/data/questions";
-import type { AssessmentDimension } from "./assessment";
+import type { TemplateSection } from "./assessment";
 
-export interface RecommendationTiers {
-  low: string;
-  medium: string;
-  high: string;
-}
+// dimension_average = Mittelwert je Sektion, auf 0-100 skaliert (bisheriges
+// KI-Readiness-Verhalten, 3 Tiers low/medium/high).
+// section_sum = Summe der Antworten je Sektion, keine Normalisierung,
+// Interpretation über den Wertebereich [Fragenanzahl*scale_min, ..*scale_max]
+// (2 Tiers low/high, Split am Mittelpunkt des Bereichs).
+export type ScoringMode = "dimension_average" | "section_sum";
 
+// Tier-Keys hängen vom scoring_mode ab (siehe SCORE_TIERS / SECTION_SUM_TIERS
+// in @/data/result-copy) - deshalb hier bewusst generisch statt eines
+// festen low/medium/high-Interfaces.
 export interface TemplateRecommendations {
-  byDimension: Partial<Record<AssessmentDimension, Partial<RecommendationTiers>>>;
-  overall: Partial<RecommendationTiers>;
+  bySection: Record<string, Partial<Record<string, string>>>;
+  overall: Partial<Record<string, string>>;
 }
 
 export interface AssessmentTemplateRow {
@@ -17,6 +21,10 @@ export interface AssessmentTemplateRow {
   title: string;
   description: string;
   slug: string;
+  scoring_mode: ScoringMode;
+  scale_min: number;
+  scale_max: number;
+  sections: TemplateSection[];
   questions: AssessmentQuestion[];
   recommendations: TemplateRecommendations;
   is_active: boolean;

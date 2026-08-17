@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { computeScores, isAnswersComplete } from "@/lib/scoring";
+import { computeScores, isAnswersComplete, type ScoringTemplate } from "@/lib/scoring";
 import type { AssessmentQuestion } from "@/data/questions";
 import type {
   AssessmentScores,
@@ -15,21 +15,35 @@ export interface SaveAssessmentResult {
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
-// Fragen werden serverseitig anhand der templateId nachgeladen statt vom
-// Client übernommen - sonst könnte ein manipulierter Client die
-// Dimension-Zuordnung verändern und damit den Score verfälschen.
-async function loadTemplateQuestions(
+interface LoadedTemplate {
+  questions: AssessmentQuestion[];
+  scoring: ScoringTemplate;
+}
+
+// Fragen und Scoring-Konfiguration werden serverseitig anhand der
+// templateId nachgeladen statt vom Client übernommen - sonst könnte ein
+// manipulierter Client die Sektions-Zuordnung oder Skala verändern und
+// damit den Score verfälschen.
+async function loadTemplate(
   supabase: SupabaseServerClient,
   templateId: string,
-): Promise<AssessmentQuestion[] | null> {
+): Promise<LoadedTemplate | null> {
   const { data } = await supabase
     .from("assessment_templates")
-    .select("questions")
+    .select("questions, sections, scoring_mode, scale_min, scale_max")
     .eq("id", templateId)
     .maybeSingle();
 
   if (!data) return null;
-  return data.questions as AssessmentQuestion[];
+  return {
+    questions: data.questions as AssessmentQuestion[],
+    scoring: {
+      sections: data.sections,
+      scoring_mode: data.scoring_mode,
+      scale_min: data.scale_min,
+      scale_max: data.scale_max,
+    },
+  };
 }
 
 export async function saveAuthenticatedAssessment(
@@ -38,10 +52,11 @@ export async function saveAuthenticatedAssessment(
   companySizeBand: CompanySizeBand | null,
 ): Promise<SaveAssessmentResult> {
   const supabase = await createClient();
-  const questions = await loadTemplateQuestions(supabase, templateId);
-  if (!questions) {
+  const template = await loadTemplate(supabase, templateId);
+  if (!template) {
     return { error: "Check-Vorlage nicht gefunden." };
   }
+  const { questions } = template;
   if (!isAnswersComplete(questions, answers)) {
     return { error: "Bitte beantworte zuerst alle Fragen." };
   }
@@ -62,7 +77,7 @@ export async function saveAuthenticatedAssessment(
     .eq("id", user.id)
     .maybeSingle();
 
-  const { scores, totalScore } = computeScores(questions, answers);
+  const { scores, totalScore } = computeScores(template.scoring, questions, answers);
 
   const { data, error } = await supabase
     .from("assessments")
@@ -109,10 +124,11 @@ export async function saveGuestAssessment(
   companySizeBand: CompanySizeBand | null,
 ): Promise<SaveAssessmentResult> {
   const supabase = await createClient();
-  const questions = await loadTemplateQuestions(supabase, templateId);
-  if (!questions) {
+  const template = await loadTemplate(supabase, templateId);
+  if (!template) {
     return { error: "Check-Vorlage nicht gefunden." };
   }
+  const { questions } = template;
   if (!isAnswersComplete(questions, answers)) {
     return { error: "Bitte beantworte zuerst alle Fragen." };
   }
@@ -123,7 +139,7 @@ export async function saveGuestAssessment(
     return { error: "Bitte stimme der Datenverarbeitung zu, um das Ergebnis zu erhalten." };
   }
 
-  const { scores, totalScore } = computeScores(questions, answers);
+  const { scores, totalScore } = computeScores(template.scoring, questions, answers);
 
   const { data, error } = await supabase
     .from("assessments")

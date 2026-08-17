@@ -1,10 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import {
   AssessmentResultView,
+  type ResultTemplateConfig,
   type StoredResult,
 } from "@/components/assessment/assessment-result-view";
-import type { AssessmentScores, TemplateBenchmark } from "@/types/assessment";
-import type { TemplateRecommendations } from "@/types/template";
+import type { AssessmentScores, TemplateBenchmark, TemplateSection } from "@/types/assessment";
+import type { AssessmentTemplateRow, TemplateRecommendations } from "@/types/template";
+import type { AssessmentQuestion } from "@/data/questions";
 
 const MIN_BENCHMARK_SAMPLE_SIZE = 5;
 
@@ -40,11 +42,57 @@ export default async function AssessmentResultPage({
       };
       completedAt = data.created_at;
       effectiveTemplateId = data.template_id;
+    }
+  }
 
-      if (data.template_id) {
+  let recommendations: TemplateRecommendations | null = null;
+  let templateConfig: ResultTemplateConfig | null = null;
+  if (effectiveTemplateId) {
+    const { data: templateRow } = await supabase
+      .from("assessment_templates")
+      .select("recommendations, scoring_mode, scale_min, scale_max, sections, questions")
+      .eq("id", effectiveTemplateId)
+      .maybeSingle();
+
+    if (templateRow) {
+      const template = templateRow as Pick<
+        AssessmentTemplateRow,
+        "recommendations" | "scoring_mode" | "scale_min" | "scale_max" | "sections" | "questions"
+      >;
+
+      if (template.recommendations) {
+        recommendations = template.recommendations;
+      }
+
+      const questions = template.questions as unknown as AssessmentQuestion[];
+      const sections = template.sections as unknown as TemplateSection[];
+      const questionCountBySection: Record<string, number> = {};
+      for (const section of sections) {
+        questionCountBySection[section.key] = questions.filter(
+          (q) => q.sectionKey === section.key,
+        ).length;
+      }
+      templateConfig = {
+        scoringMode: template.scoring_mode,
+        scaleMin: template.scale_min,
+        scaleMax: template.scale_max,
+        sections,
+        questionCountBySection,
+        totalQuestionCount: questions.length,
+      };
+
+      // Der Benchmark-RPC liefert nur Mediane für die 4 festen
+      // KI-Readiness-Sektionen und ist damit nur für dimension_average-
+      // Templates sinnvoll (siehe Migration 0037).
+      if (
+        user &&
+        id &&
+        template.scoring_mode === "dimension_average" &&
+        effectiveTemplateId
+      ) {
         const { data: benchmarkRows } = await supabase.rpc(
           "get_template_benchmark",
-          { p_template_id: data.template_id },
+          { p_template_id: effectiveTemplateId },
         );
         const row = benchmarkRows?.[0];
 
@@ -56,7 +104,7 @@ export default async function AssessmentResultPage({
           benchmark = {
             sampleSize: Number(row.sample_size),
             medianTotalScore: Math.round(Number(row.median_total_score)),
-            medianByDimension: {
+            medianBySection: {
               datenqualitaet: Math.round(Number(row.median_datenqualitaet ?? 0)),
               prozessklarheit: Math.round(Number(row.median_prozessklarheit ?? 0)),
               kulturelle_akzeptanz: Math.round(
@@ -72,19 +120,6 @@ export default async function AssessmentResultPage({
     }
   }
 
-  let recommendations: TemplateRecommendations | null = null;
-  if (effectiveTemplateId) {
-    const { data: templateRow } = await supabase
-      .from("assessment_templates")
-      .select("recommendations")
-      .eq("id", effectiveTemplateId)
-      .maybeSingle();
-
-    if (templateRow?.recommendations) {
-      recommendations = templateRow.recommendations as TemplateRecommendations;
-    }
-  }
-
   return (
     <div className="flex flex-1 justify-center bg-zinc-50 px-4 py-12 dark:bg-black">
       <div className="w-full max-w-3xl">
@@ -94,6 +129,7 @@ export default async function AssessmentResultPage({
           completedAt={completedAt}
           benchmark={benchmark}
           recommendations={recommendations}
+          templateConfig={templateConfig}
         />
       </div>
     </div>
