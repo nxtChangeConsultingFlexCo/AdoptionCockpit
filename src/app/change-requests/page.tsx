@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { RoadmapTabs } from "@/components/roadmap-tabs";
 import { StatusBadge } from "@/components/change-requests/status-badge";
 import type { ChangeRequestRow, ChangeRequestStatus } from "@/types/governance";
@@ -15,14 +16,28 @@ const STATUS_FILTERS: Record<string, { label: string; statuses: ChangeRequestSta
   done: { label: "Erledigt", statuses: ["done"] },
 };
 
+const SORT_OPTIONS = {
+  newest: "Neueste zuerst",
+  oldest: "Älteste zuerst",
+  priority: "Priorität (hoch zuerst)",
+} as const;
+
+type SortKey = keyof typeof SORT_OPTIONS;
+
+const PRIORITY_RANK: Record<string, number> = { high: 3, medium: 2, low: 1 };
+
+const selectClassName =
+  "flex h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
+
 export default async function ChangeRequestsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; sort?: string }>;
 }) {
   await requireUser("/change-requests");
-  const { status } = await searchParams;
+  const { status, q, sort } = await searchParams;
   const filter = status ? STATUS_FILTERS[status] : undefined;
+  const sortKey: SortKey = sort && sort in SORT_OPTIONS ? (sort as SortKey) : "newest";
   const supabase = await createClient();
 
   let query = supabase
@@ -30,15 +45,25 @@ export default async function ChangeRequestsPage({
     .select(
       "id, title, description, status, priority, created_at, updated_at, requested_by, assigned_leader, organization_id, cab_decision_note, it_feedback",
     )
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: sortKey === "oldest" });
 
   if (filter) {
     query = query.in("status", filter.statuses);
   }
+  if (q?.trim()) {
+    const term = q.trim().replace(/[%,]/g, "");
+    query = query.or(`title.ilike.%${term}%,description.ilike.%${term}%`);
+  }
 
   const { data } = await query;
 
-  const requests = (data ?? []) as ChangeRequestRow[];
+  let requests = (data ?? []) as ChangeRequestRow[];
+  if (sortKey === "priority") {
+    requests = [...requests].sort(
+      (a, b) =>
+        (PRIORITY_RANK[b.priority ?? ""] ?? 0) - (PRIORITY_RANK[a.priority ?? ""] ?? 0),
+    );
+  }
 
   return (
     <div className="flex flex-1 justify-center bg-zinc-50 px-4 py-12 dark:bg-black">
@@ -75,14 +100,51 @@ export default async function ChangeRequestsPage({
           </Button>
         </div>
 
+        <form method="get" className="flex flex-wrap items-end gap-3">
+          {status && <input type="hidden" name="status" value={status} />}
+          <div className="flex flex-1 flex-col gap-1 sm:max-w-xs">
+            <label htmlFor="q" className="text-xs text-muted-foreground">
+              Suche
+            </label>
+            <Input
+              id="q"
+              name="q"
+              defaultValue={q ?? ""}
+              placeholder="Titel oder Beschreibung…"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="sort" className="text-xs text-muted-foreground">
+              Sortierung
+            </label>
+            <select
+              id="sort"
+              name="sort"
+              defaultValue={sortKey}
+              className={selectClassName}
+            >
+              {Object.entries(SORT_OPTIONS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Button type="submit" variant="outline" size="sm">
+            Anwenden
+          </Button>
+        </form>
+
         {requests.length === 0 ? (
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border px-6 py-16 text-center">
             <p className="text-sm text-muted-foreground">
-              {filter
-                ? "Keine Anfragen mit diesem Status."
-                : "Noch keine Anfragen vorhanden."}
+              {q?.trim()
+                ? "Keine Anfragen gefunden."
+                : filter
+                  ? "Keine Anfragen mit diesem Status."
+                  : "Noch keine Anfragen vorhanden."}
             </p>
-            {!filter && (
+            {!filter && !q?.trim() && (
               <Button
                 variant="outline"
                 render={<Link href="/change-requests/new" />}

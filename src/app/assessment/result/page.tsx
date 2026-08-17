@@ -51,7 +51,7 @@ export default async function AssessmentResultPage({
     const { data: templateRow } = await supabase
       .from("assessment_templates")
       .select(
-        "recommendations, scoring_mode, scale_min, scale_max, result_visualization, sections, questions",
+        "recommendations, scoring_mode, scale_min, scale_max, result_visualization, sections, questions, tier_low_max, tier_medium_max, section_sum_high_threshold",
       )
       .eq("id", effectiveTemplateId)
       .maybeSingle();
@@ -66,6 +66,9 @@ export default async function AssessmentResultPage({
         | "result_visualization"
         | "sections"
         | "questions"
+        | "tier_low_max"
+        | "tier_medium_max"
+        | "section_sum_high_threshold"
       >;
 
       if (template.recommendations) {
@@ -88,6 +91,9 @@ export default async function AssessmentResultPage({
         sections,
         questionCountBySection,
         totalQuestionCount: questions.length,
+        tierLowMax: template.tier_low_max,
+        tierMediumMax: template.tier_medium_max,
+        sectionSumHighThreshold: template.section_sum_high_threshold,
       };
 
       // Der Benchmark-RPC liefert nur Mediane für die 4 festen

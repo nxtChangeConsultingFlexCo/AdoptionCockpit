@@ -1,7 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
+import { useTheme } from "next-themes";
+import { Moon, Sun } from "lucide-react";
 import { logout } from "@/lib/auth-actions";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -28,6 +30,16 @@ interface UserMenuProps {
 
 export function UserMenu({ displayName, email }: UserMenuProps) {
   const [isPending, startTransition] = useTransition();
+  const { resolvedTheme, setTheme } = useTheme();
+  // Vor dem ersten Client-Mount ist resolvedTheme unbekannt (next-themes
+  // liest die Präferenz erst nach Hydration) - bis dahin einen neutralen
+  // Zustand zeigen, um einen Hydration-Mismatch zu vermeiden.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+  const isDark = mounted && resolvedTheme === "dark";
 
   return (
     <DropdownMenu>
@@ -48,6 +60,17 @@ export function UserMenu({ displayName, email }: UserMenuProps) {
         <DropdownMenuLinkItem closeOnClick render={<Link href="/settings/profile" />}>
           Einstellungen
         </DropdownMenuLinkItem>
+        <DropdownMenuLinkItem closeOnClick render={<Link href="/settings/team" />}>
+          Mein Team
+        </DropdownMenuLinkItem>
+        <DropdownMenuItem
+          closeOnClick={false}
+          onClick={() => setTheme(isDark ? "light" : "dark")}
+          className="gap-2"
+        >
+          {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+          {isDark ? "Helles Design" : "Dunkles Design"}
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           variant="destructive"

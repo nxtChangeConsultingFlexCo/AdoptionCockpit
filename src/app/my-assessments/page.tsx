@@ -3,8 +3,20 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import type { AssessmentQuestion } from "@/data/questions";
 import type { ScoringMode } from "@/types/template";
+
+const SORT_OPTIONS = {
+  newest: "Neueste zuerst",
+  oldest: "Älteste zuerst",
+  score: "Score (hoch zuerst)",
+} as const;
+
+type SortKey = keyof typeof SORT_OPTIONS;
+
+const selectClassName =
+  "flex h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
 
 interface MyAssessment {
   id: string;
@@ -24,11 +36,17 @@ function scoreMaxLabel(template: MyAssessment["assessment_templates"]): string {
   return String(template.questions.length * template.scale_max);
 }
 
-export default async function MyAssessmentsPage() {
+export default async function MyAssessmentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ sort?: string; q?: string }>;
+}) {
   const user = await requireUser("/my-assessments");
   if (user.role === "god") {
     redirect("/admin");
   }
+  const { sort, q } = await searchParams;
+  const sortKey: SortKey = sort && sort in SORT_OPTIONS ? (sort as SortKey) : "newest";
 
   const supabase = await createClient();
   const { data } = await supabase
@@ -38,9 +56,21 @@ export default async function MyAssessmentsPage() {
     )
     .eq("user_id", user.id)
     .eq("status", "completed")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: sortKey === "oldest" });
 
-  const assessments = (data ?? []) as unknown as MyAssessment[];
+  const allAssessments = (data ?? []) as unknown as MyAssessment[];
+  let assessments = allAssessments;
+  if (q?.trim()) {
+    const term = q.trim().toLowerCase();
+    assessments = assessments.filter((a) =>
+      (a.assessment_templates?.title ?? "").toLowerCase().includes(term),
+    );
+  }
+  if (sortKey === "score") {
+    assessments = [...assessments].sort(
+      (a, b) => (b.total_score ?? -1) - (a.total_score ?? -1),
+    );
+  }
 
   return (
     <div className="flex flex-1 justify-center bg-zinc-50 px-4 py-12 dark:bg-black">
@@ -57,14 +87,49 @@ export default async function MyAssessmentsPage() {
           <Button render={<Link href="/" />}>Neuen Check starten</Button>
         </div>
 
+        {allAssessments.length > 0 && (
+          <form method="get" className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-1 flex-col gap-1 sm:max-w-xs">
+              <label htmlFor="q" className="text-xs text-muted-foreground">
+                Suche
+              </label>
+              <Input id="q" name="q" defaultValue={q ?? ""} placeholder="Check-Name…" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="sort" className="text-xs text-muted-foreground">
+                Sortierung
+              </label>
+              <select
+                id="sort"
+                name="sort"
+                defaultValue={sortKey}
+                className={selectClassName}
+              >
+                {Object.entries(SORT_OPTIONS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <Button type="submit" variant="outline" size="sm">
+              Anwenden
+            </Button>
+          </form>
+        )}
+
         {assessments.length === 0 ? (
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border px-6 py-16 text-center">
             <p className="text-sm text-muted-foreground">
-              Du hast noch keinen Check abgeschlossen.
+              {allAssessments.length === 0
+                ? "Du hast noch keinen Check abgeschlossen."
+                : "Keine Checks gefunden."}
             </p>
-            <Button variant="outline" render={<Link href="/" />}>
-              Ersten Check starten
-            </Button>
+            {allAssessments.length === 0 && (
+              <Button variant="outline" render={<Link href="/" />}>
+                Ersten Check starten
+              </Button>
+            )}
           </div>
         ) : (
           <div className="flex flex-col gap-3">

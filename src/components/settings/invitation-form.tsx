@@ -30,6 +30,9 @@ export function InvitationForm({
   );
   const [error, setError] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
+  // email wird nach dem Erstellen geleert (Formular-Reset) - die
+  // eingeladene Adresse bleibt hier für den Mailto-Button erhalten.
+  const [invitedEmail, setInvitedEmail] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit() {
@@ -46,9 +49,18 @@ export function InvitationForm({
         return;
       }
       setInviteLink(`${window.location.origin}/register?invite=${res.token}`);
+      setInvitedEmail(email);
       setEmail("");
     });
   }
+
+  const mailtoHref =
+    inviteLink &&
+    `mailto:${invitedEmail ?? ""}?subject=${encodeURIComponent(
+      "Einladung zu AdoptionCockpit",
+    )}&body=${encodeURIComponent(
+      `Hallo,\n\ndu wurdest zu AdoptionCockpit eingeladen. Über den folgenden Link kannst du dein Konto einrichten:\n\n${inviteLink}\n\nViele Grüße`,
+    )}`;
 
   return (
     <Card>
@@ -72,10 +84,19 @@ export function InvitationForm({
         {inviteLink && (
           <Alert>
             <AlertDescription className="flex flex-col gap-2">
-              <span>Einladungslink erstellt – bitte manuell versenden:</span>
+              <span>Einladungslink erstellt:</span>
               <code className="break-all rounded bg-muted px-2 py-1 text-xs">
                 {inviteLink}
               </code>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="self-start"
+                render={<a href={mailtoHref ?? undefined} />}
+              >
+                Per E-Mail versenden
+              </Button>
             </AlertDescription>
           </Alert>
         )}

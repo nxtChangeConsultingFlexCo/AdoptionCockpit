@@ -2,6 +2,10 @@ import { requireRole } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
 import { AssessmentAvailabilityToggle } from "@/components/settings/assessment-availability-toggle";
 import { AssessmentScopeEditor } from "@/components/settings/assessment-scope-editor";
+import {
+  AssessmentResultsTable,
+  type AssessmentResultRow,
+} from "@/components/settings/assessment-results-table";
 import type { AssessmentScopeType } from "@/types/template";
 
 interface CatalogEntry {
@@ -113,6 +117,22 @@ export default async function OrgAssessmentsPage() {
     ((profileData ?? []) as ProfileSummary[]).map((p) => [p.id, p]),
   );
 
+  const resultRows: AssessmentResultRow[] = assessments.map((assessment) => {
+    const profile = assessment.user_id ? profileMap.get(assessment.user_id) : undefined;
+    const name = profile
+      ? [profile.first_name, profile.last_name].filter(Boolean).join(" ") ||
+        profile.email ||
+        "Unbekannt"
+      : "Unbekannt";
+    return {
+      id: assessment.id,
+      name,
+      checkTitle: assessment.assessment_templates?.title ?? "Check",
+      createdAt: assessment.created_at,
+      score: assessment.total_score,
+    };
+  });
+
   return (
     <div className="flex flex-1 justify-center bg-zinc-50 px-4 py-12 dark:bg-black">
       <div className="flex w-full max-w-4xl flex-col gap-10">
@@ -192,54 +212,7 @@ export default async function OrgAssessmentsPage() {
               Noch keine abgeschlossenen Checks in deiner Organisation.
             </div>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-border">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/40 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                      <th className="px-4 py-3">Person</th>
-                      <th className="px-4 py-3">Check</th>
-                      <th className="px-4 py-3">Datum</th>
-                      <th className="px-4 py-3">Score</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {assessments.map((assessment) => {
-                      const profile = assessment.user_id
-                        ? profileMap.get(assessment.user_id)
-                        : undefined;
-                      const name = profile
-                        ? [profile.first_name, profile.last_name]
-                            .filter(Boolean)
-                            .join(" ") ||
-                          profile.email ||
-                          "Unbekannt"
-                        : "Unbekannt";
-                      return (
-                        <tr
-                          key={assessment.id}
-                          className="border-b border-border last:border-0"
-                        >
-                          <td className="px-4 py-3 text-foreground">{name}</td>
-                          <td className="px-4 py-3 text-muted-foreground">
-                            {assessment.assessment_templates?.title ?? "Check"}
-                          </td>
-                          <td className="px-4 py-3 text-muted-foreground">
-                            {new Date(assessment.created_at).toLocaleDateString(
-                              "de-DE",
-                              { day: "2-digit", month: "long", year: "numeric" },
-                            )}
-                          </td>
-                          <td className="px-4 py-3 font-medium tabular-nums text-foreground">
-                            {assessment.total_score ?? "—"}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <AssessmentResultsTable rows={resultRows} />
           )}
         </section>
       </div>

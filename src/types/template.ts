@@ -31,6 +31,11 @@ export interface AssessmentTemplateRow {
   scale_min: number;
   scale_max: number;
   result_visualization: ResultVisualization;
+  // Optionale, pro Template konfigurierbare Tier-Schwellenwerte (Migration
+  // 0040). null = jeweiliger Default aus @/data/result-copy.
+  tier_low_max: number | null;
+  tier_medium_max: number | null;
+  section_sum_high_threshold: number | null;
   sections: TemplateSection[];
   questions: AssessmentQuestion[];
   recommendations: TemplateRecommendations;

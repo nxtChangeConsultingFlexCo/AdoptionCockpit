@@ -41,6 +41,9 @@ export interface ResultTemplateConfig {
   sections: TemplateSection[];
   questionCountBySection: Record<string, number>;
   totalQuestionCount: number;
+  tierLowMax: number | null;
+  tierMediumMax: number | null;
+  sectionSumHighThreshold: number | null;
 }
 
 interface AssessmentResultViewProps {
@@ -179,6 +182,11 @@ export function AssessmentResultView({
   if (scoringMode === "section_sum" && templateConfig) {
     const totalMin = templateConfig.totalQuestionCount * templateConfig.scaleMin;
     const totalMax = templateConfig.totalQuestionCount * templateConfig.scaleMax;
+    // sectionSumHighThreshold ist als Wert auf der Skala einer einzelnen
+    // Sektion gedacht (z. B. "20 von 25") und wird deshalb nur je Sektion
+    // angewendet, nicht auf die Gesamtsumme - deren Wertebereich ist ein
+    // anderer (Summe über alle Sektionen). Die Gesamteinschätzung bleibt
+    // beim mathematischen Mittelpunkt.
     const totalTier = getSectionSumTier(result.totalScore, totalMin, totalMax);
     const overallRecommendation = recommendations?.overall?.[totalTier];
     const totalRange = totalMax - totalMin;
@@ -265,7 +273,12 @@ export function AssessmentResultView({
                     templateConfig.questionCountBySection[section.key] ?? 0;
                   const min = questionCount * templateConfig.scaleMin;
                   const max = questionCount * templateConfig.scaleMax;
-                  const tier = getSectionSumTier(sum, min, max);
+                  const tier = getSectionSumTier(
+                    sum,
+                    min,
+                    max,
+                    templateConfig.sectionSumHighThreshold,
+                  );
                   return (
                     <SectionScaleCard
                       key={section.key}
@@ -287,7 +300,11 @@ export function AssessmentResultView({
     );
   }
 
-  const tier = getScoreTier(result.totalScore);
+  const tier = getScoreTier(
+    result.totalScore,
+    templateConfig?.tierLowMax,
+    templateConfig?.tierMediumMax,
+  );
   const overallRecommendation = recommendations?.overall?.[tier];
   const scoreDiff = benchmark ? result.totalScore - benchmark.medianTotalScore : null;
 
@@ -344,7 +361,11 @@ export function AssessmentResultView({
       <section className="grid gap-4 sm:grid-cols-2">
         {sections.map((section) => {
           const sectionScore = result.scores[section.key];
-          const sectionTier = getScoreTier(sectionScore);
+          const sectionTier = getScoreTier(
+            sectionScore,
+            templateConfig?.tierLowMax,
+            templateConfig?.tierMediumMax,
+          );
           return (
             <DimensionCard
               key={section.key}
