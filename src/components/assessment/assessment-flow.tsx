@@ -25,6 +25,7 @@ import { RESULT_STORAGE_KEY, type StoredResult } from "./assessment-result-view"
 type Step = "questions" | "gate";
 
 interface AssessmentFlowProps {
+  slug: string;
   templateId: string;
   templateTitle: string;
   questions: AssessmentQuestion[];
@@ -35,6 +36,7 @@ interface AssessmentFlowProps {
 }
 
 export function AssessmentFlow({
+  slug,
   templateId,
   templateTitle,
   questions,
@@ -151,6 +153,7 @@ export function AssessmentFlow({
   if (step === "gate") {
     return (
       <ContactGate
+        slug={slug}
         onSubmitGuest={handleGuestSubmit}
         isPending={isPending}
         error={error}

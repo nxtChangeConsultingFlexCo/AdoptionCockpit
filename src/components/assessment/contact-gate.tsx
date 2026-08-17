@@ -17,14 +17,20 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { GuestContact } from "@/app/assessment/actions";
 
 interface ContactGateProps {
+  slug: string;
   onSubmitGuest: (contact: GuestContact) => void;
   isPending: boolean;
   error: string | null;
 }
 
-export function ContactGate({ onSubmitGuest, isPending, error }: ContactGateProps) {
+export function ContactGate({ slug, onSubmitGuest, isPending, error }: ContactGateProps) {
   const [gdprConsent, setGdprConsent] = useState(false);
   const [marketingConsent, setMarketingConsent] = useState(false);
+  // Muss auf die konkrete Check-Seite zurückführen (nicht /assessment,
+  // das nur auf die Startseite weiterleitet) - dort liegen die im
+  // sessionStorage gesicherten Antworten und die Logik, die sie nach
+  // erfolgreicher Anmeldung automatisch wiederherstellt und einreicht.
+  const next = `/assessment/${slug}`;
 
   function handleSubmit(formData: FormData) {
     onSubmitGuest({
@@ -59,10 +65,13 @@ export function ContactGate({ onSubmitGuest, isPending, error }: ContactGateProp
           </CardDescription>
         </CardHeader>
         <CardContent className="flex gap-3">
-          <Button variant="outline" render={<Link href="/login?next=/assessment" />}>
+          <Button
+            variant="outline"
+            render={<Link href={`/login?next=${encodeURIComponent(next)}`} />}
+          >
             Anmelden
           </Button>
-          <Button render={<Link href="/register?next=/assessment" />}>
+          <Button render={<Link href={`/register?next=${encodeURIComponent(next)}`} />}>
             Registrieren
           </Button>
         </CardContent>
