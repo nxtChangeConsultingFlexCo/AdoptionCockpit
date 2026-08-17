@@ -50,12 +50,13 @@ export async function SiteHeader() {
                 <Link href="/admin" className={navLinkClassName}>
                   Dashboard
                 </Link>
-                <Link href="/admin/users" className={navLinkClassName}>
-                  Nutzer
-                </Link>
-                <Link href="/admin/organizations" className={navLinkClassName}>
-                  Organisationen
-                </Link>
+                <NavDropdown
+                  label="Benutzerverwaltung"
+                  items={[
+                    { href: "/admin/users", label: "Nutzer" },
+                    { href: "/admin/organizations", label: "Organisationen" },
+                  ]}
+                />
                 <Link href="/settings/templates" className={navLinkClassName}>
                   Check-Templates
                 </Link>
