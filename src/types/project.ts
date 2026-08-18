@@ -55,3 +55,11 @@ export interface ProjectRow {
   created_at: string;
   updated_at: string;
 }
+
+export interface ProjectMemberRow {
+  id: string;
+  project_id: string;
+  user_id: string;
+  added_by: string | null;
+  created_at: string;
+}

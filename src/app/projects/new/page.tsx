@@ -20,15 +20,27 @@ export default async function NewProjectPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  await requireRole(["god", "client_admin"], "/projects/new");
+  const currentUser = await requireRole(["god", "client_admin"], "/projects/new");
   const params = await searchParams;
   const supabase = await createClient();
 
-  const { data } = await supabase
-    .from("programs")
-    .select("*")
-    .order("name", { ascending: true });
-  const programs = (data ?? []) as ProgramRow[];
+  const [{ data: programData }, { data: memberData }] = await Promise.all([
+    supabase.from("programs").select("*").order("name", { ascending: true }),
+    currentUser.organizationId
+      ? supabase
+          .from("profiles")
+          .select("id, first_name, last_name, email")
+          .eq("organization_id", currentUser.organizationId)
+          .order("first_name", { ascending: true })
+      : Promise.resolve({ data: [] }),
+  ]);
+  const programs = (programData ?? []) as ProgramRow[];
+  const members = (memberData ?? []) as {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
+  }[];
 
   return (
     <div className="flex flex-1 justify-center bg-zinc-50 px-4 py-12 dark:bg-black">
@@ -74,6 +86,24 @@ export default async function NewProjectPage({
                   {programs.map((program) => (
                     <option key={program.id} value={program.id}>
                       {program.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="lead">Projektverantwortliche/r (optional)</Label>
+                <select
+                  id="lead"
+                  name="lead"
+                  defaultValue=""
+                  className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+                >
+                  <option value="">Niemand</option>
+                  {members.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {[member.first_name, member.last_name].filter(Boolean).join(" ") ||
+                        member.email ||
+                        "Unbekannt"}
                     </option>
                   ))}
                 </select>
