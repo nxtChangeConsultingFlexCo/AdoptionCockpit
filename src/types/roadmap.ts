@@ -11,6 +11,7 @@ export const ROADMAP_ITEM_STATUS_LABELS: Record<RoadmapItemStatus, string> = {
 export interface RoadmapItemRow {
   id: string;
   organization_id: string;
+  project_id: string;
   title: string;
   description: string | null;
   phase: string | null;

@@ -69,6 +69,9 @@ export async function SiteHeader() {
                 <Link href="/roadmap" className={navLinkClassName}>
                   Roadmap
                 </Link>
+                <Link href="/projects" className={navLinkClassName}>
+                  Projekte
+                </Link>
                 {isClientAdmin ? (
                   <NavDropdown
                     label="Checks"

@@ -40,6 +40,7 @@ export const CHANGE_REQUEST_PRIORITY_LABELS: Record<ChangeRequestPriority, strin
 export interface ChangeRequestRow {
   id: string;
   organization_id: string;
+  project_id: string;
   title: string;
   description: string;
   requested_by: string | null;

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser, type AuthenticatedUser } from "@/lib/auth/roles";
+import { getSelectedProject } from "@/lib/project-context";
 import type { RoadmapItemStatus } from "@/types/roadmap";
 
 export interface RoadmapItemActionResult {
@@ -39,8 +40,14 @@ export async function createRoadmapItem(
   }
 
   const supabase = await createClient();
+  const { projectId } = await getSelectedProject(supabase);
+  if (!projectId) {
+    return { error: "Kein Projekt vorhanden. Bitte zuerst ein Projekt anlegen." };
+  }
+
   const { error } = await supabase.from("roadmap_items").insert({
     organization_id: user.organizationId,
+    project_id: projectId,
     title: title.trim(),
     description: description.trim() || null,
     phase: phase.trim() || null,
