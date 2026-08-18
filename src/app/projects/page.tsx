@@ -78,9 +78,20 @@ export default async function ProjectsPage() {
                       </p>
                     )}
                   </div>
-                  <span className="inline-flex w-fit shrink-0 items-center rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground">
-                    {PROJECT_STATUS_LABELS[project.status]}
-                  </span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="inline-flex w-fit items-center rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground">
+                      {PROJECT_STATUS_LABELS[project.status]}
+                    </span>
+                    {canManage && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        render={<Link href={`/projects/${project.id}`} />}
+                      >
+                        Mitglieder
+                      </Button>
+                    )}
+                  </div>
                 </div>
               );
             })}
