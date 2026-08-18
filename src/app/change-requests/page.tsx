@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
+import { getSelectedProject } from "@/lib/project-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RoadmapTabs } from "@/components/roadmap-tabs";
+import { ProjectSwitcher } from "@/components/projects/project-switcher";
 import { StatusBadge } from "@/components/change-requests/status-badge";
 import { KanbanBoard } from "@/components/change-requests/kanban-board";
 import type { ChangeRequestRow, ChangeRequestStatus } from "@/types/governance";
@@ -54,11 +56,14 @@ export default async function ChangeRequestsPage({
   const listHref = buildHref({});
   const boardHref = buildHref({ view: "board" });
 
+  const { projectId, projects } = await getSelectedProject(supabase);
+
   let query = supabase
     .from("change_requests")
     .select(
-      "id, title, description, status, priority, created_at, updated_at, requested_by, assigned_leader, organization_id, cab_decision_note, it_feedback",
+      "id, title, description, status, priority, created_at, updated_at, requested_by, assigned_leader, organization_id, project_id, cab_decision_note, it_feedback",
     )
+    .eq("project_id", projectId ?? "")
     .order("created_at", { ascending: sortKey === "oldest" });
 
   // In der Kanban-Ansicht ist die Statusgruppierung selbst der Filter -
@@ -94,7 +99,10 @@ export default async function ChangeRequestsPage({
           </h1>
         </div>
 
-        <RoadmapTabs />
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <RoadmapTabs />
+          <ProjectSwitcher projects={projects} selected={projectId} />
+        </div>
 
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-2">

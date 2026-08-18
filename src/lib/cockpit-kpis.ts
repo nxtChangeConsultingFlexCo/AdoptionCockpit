@@ -21,7 +21,16 @@ const ROADMAP_STATUSES = ["qualified", "it_backlog", "in_implementation", "done"
 export async function computeCockpitKpis(
   supabase: SupabaseServerClient,
   userId: string,
+  projectId: string | null,
 ): Promise<Record<CockpitKpiId, number>> {
+  // Die Anfragen-KPIs sind auf das im Umschalter gewählte Projekt
+  // begrenzt (siehe Migration 0043) - ohne Projekt (z.B. Org ohne
+  // Projekte) liefern sie 0 statt eines ungefilterten Org-weiten Werts.
+  function scopedChangeRequests() {
+    const query = supabase.from("change_requests").select("id", { count: "exact", head: true });
+    return projectId ? query.eq("project_id", projectId) : query.eq("project_id", "");
+  }
+
   const [
     availableTemplates,
     ownCompletedTemplates,
@@ -41,23 +50,10 @@ export async function computeCockpitKpis(
       .from("assessments")
       .select("id", { count: "exact", head: true })
       .eq("status", "completed"),
-    supabase
-      .from("change_requests")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "submitted"),
-    supabase
-      .from("change_requests")
-      .select("id", { count: "exact", head: true })
-      .in("status", IN_PROGRESS_STATUSES),
-    supabase
-      .from("change_requests")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "done"),
-    supabase
-      .from("change_requests")
-      .select("id", { count: "exact", head: true })
-      .in("status", ROADMAP_STATUSES)
-      .not("phase", "is", null),
+    scopedChangeRequests().eq("status", "submitted"),
+    scopedChangeRequests().in("status", IN_PROGRESS_STATUSES),
+    scopedChangeRequests().eq("status", "done"),
+    scopedChangeRequests().in("status", ROADMAP_STATUSES).not("phase", "is", null),
   ]);
 
   const completedTemplateIds = new Set(

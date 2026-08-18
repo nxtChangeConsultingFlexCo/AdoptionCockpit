@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/roles";
+import { getSelectedProject } from "@/lib/project-context";
 import type { ChangeRequestStatus } from "@/types/governance";
 
 export interface ChangeRequestActionResult {
@@ -53,10 +54,16 @@ export async function createChangeRequest(formData: FormData) {
   }
 
   const supabase = await createClient();
+  const { projectId } = await getSelectedProject(supabase);
+  if (!projectId) {
+    redirectWithError("Kein Projekt vorhanden. Bitte zuerst ein Projekt anlegen.");
+  }
+
   const { data, error } = await supabase
     .from("change_requests")
     .insert({
       organization_id: user.organizationId,
+      project_id: projectId,
       title,
       description,
       requested_by: user.id,

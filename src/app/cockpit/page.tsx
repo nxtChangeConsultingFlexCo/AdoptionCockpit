@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { requireUser, userHasRole } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
+import { getSelectedProject } from "@/lib/project-context";
+import { ProjectSwitcher } from "@/components/projects/project-switcher";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { KpiCard } from "@/components/cockpit/kpi-card";
@@ -54,8 +56,11 @@ export default async function CockpitPage() {
       null) as CockpitKpiVisibilityConfig | null;
   }
   const visibleKpiIds = resolveVisibleKpis(isAdmin, user.orgRoles, visibilityConfig);
+  const { projectId, projects } = await getSelectedProject(supabase);
   const kpiValues =
-    visibleKpiIds.length > 0 ? await computeCockpitKpis(supabase, user.id) : null;
+    visibleKpiIds.length > 0
+      ? await computeCockpitKpis(supabase, user.id, projectId)
+      : null;
 
   // Nur dimension_average-Assessments (bisher: KI-Readiness) fließen hier
   // ein - die Dimension-KPIs unten (Stärkste/Schwächste Dimension) gehen
@@ -128,17 +133,17 @@ export default async function CockpitPage() {
         .from("org_assignments")
         .select("child_user_id", { count: "exact", head: true })
         .eq("child_user_id", user.id),
-      user.organizationId
+      projectId
         ? supabase
             .from("roadmap_items")
             .select("id", { count: "exact", head: true })
-            .eq("organization_id", user.organizationId)
+            .eq("project_id", projectId)
         : Promise.resolve({ count: 0 }),
-      user.organizationId
+      projectId
         ? supabase
             .from("change_requests")
             .select("id", { count: "exact", head: true })
-            .eq("organization_id", user.organizationId)
+            .eq("project_id", projectId)
             .in("status", ["qualified", "it_backlog", "in_implementation", "done"])
         : Promise.resolve({ count: 0 }),
       supabase
@@ -179,7 +184,10 @@ export default async function CockpitPage() {
 
   const kpiSection = kpiValues && visibleKpiIds.length > 0 && (
     <section className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold text-foreground">Überblick</h2>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h2 className="text-lg font-semibold text-foreground">Überblick</h2>
+        <ProjectSwitcher projects={projects} selected={projectId} />
+      </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {visibleKpiIds.map((id) => (
           <CockpitKpiTile

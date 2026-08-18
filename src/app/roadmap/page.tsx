@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth/roles";
 import { createClient } from "@/lib/supabase/server";
+import { getSelectedProject } from "@/lib/project-context";
 import { RoadmapTabs } from "@/components/roadmap-tabs";
 import { RoadmapItemForm } from "@/components/roadmap-item-form";
+import { ProjectSwitcher } from "@/components/projects/project-switcher";
 import { StatusBadge } from "@/components/change-requests/status-badge";
 import type { ChangeRequestRow, ChangeRequestStatus } from "@/types/governance";
 import {
@@ -48,15 +50,19 @@ export default async function RoadmapPage() {
     user.orgRoles.includes("client_admin") ||
     user.orgRoles.includes("ca_board");
 
+  const { projectId, projects } = await getSelectedProject(supabase);
+
   // RLS beschränkt beide Abfragen bereits korrekt: Board-Rollen sehen
   // die ganze Org, andere nur eigene/zugewiesene Anfragen bzw. die
-  // org-weit lesbaren manuellen Roadmap-Einträge.
+  // org-weit lesbaren manuellen Roadmap-Einträge. project_id grenzt
+  // zusätzlich auf das im Umschalter gewählte Projekt ein.
   const [{ data: requestData }, { data: itemData }] = await Promise.all([
     supabase
       .from("change_requests")
       .select("*")
+      .eq("project_id", projectId ?? "")
       .in("status", PLANNABLE_STATUSES),
-    supabase.from("roadmap_items").select("*"),
+    supabase.from("roadmap_items").select("*").eq("project_id", projectId ?? ""),
   ]);
 
   const requests = (requestData ?? []) as ChangeRequestRow[];
@@ -119,8 +125,9 @@ export default async function RoadmapPage() {
           )}
         </div>
 
-        <div className="mt-6">
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
           <RoadmapTabs />
+          <ProjectSwitcher projects={projects} selected={projectId} />
         </div>
 
         {entries.length === 0 ? (
